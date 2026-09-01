@@ -1,12 +1,12 @@
-import { useState, useMemo } from 'react'
-import StepBar    from './components/StepBar'
-import IOStep     from './components/IOStep'
+import { useState } from 'react'
+import selecLogo from './assets/selecLogo'
+import StepBar     from './components/StepBar'
+import IOStep      from './components/IOStep'
 import SpecialStep from './components/SpecialStep'
 import ResultsStep from './components/ResultsStep'
 import { generateBuckets } from './engine/configurator'
 import { useSheetCapture }  from './hooks/useSheetCapture'
 
-// Unique session ID per browser visit — ties anonymous requirement to lead
 const SESSION_ID = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
 
 const DEFAULT_IO = {
@@ -28,7 +28,6 @@ export default function App() {
     const res = generateBuckets({ ...io, ...sp })
     setResult(res)
     setStep(2)
-    // Anonymous capture — fires regardless of whether user shares contact
     captureRequirement(io, sp, res.buckets)
   }
 
@@ -40,21 +39,22 @@ export default function App() {
     <div className="min-h-screen bg-[#f4f3ef]">
 
       {/* Header */}
-      <header className="bg-navy h-[60px] flex items-center px-7 gap-3.5 sticky top-0 z-50 shadow-lg">
-        <div className="w-8 h-8 bg-yellow rounded-lg flex items-center justify-center text-navy font-black text-sm flex-shrink-0">
-          S
-        </div>
+      <header className="bg-navy h-[64px] flex items-center px-7 gap-4 sticky top-0 z-50 shadow-lg">
+        <img
+          src={selecLogo}
+          alt="Selec"
+          className="h-8 object-contain brightness-0 invert"
+        />
+        <div className="w-px h-8 bg-white/10 mx-1" />
         <div>
-          <div className="text-yellow font-black text-[18px] leading-none tracking-tight">SELEC</div>
-          <div className="text-white/30 text-[10px] uppercase tracking-widest mt-0.5">PLC Configurator</div>
+          <div className="text-white font-semibold text-[13px] leading-none">PLC Configurator</div>
+          <div className="text-white/30 text-[10px] uppercase tracking-widest mt-1">Product Selection Tool</div>
         </div>
         <div className="ml-auto text-white/20 text-[11px]">MRP FY 2026-27</div>
       </header>
 
-      {/* Step bar */}
       <StepBar step={step} />
 
-      {/* Content */}
       <main className="max-w-3xl mx-auto px-4 py-6">
         {step === 0 && (
           <IOStep io={io} setIO={setIO} onNext={() => setStep(1)} />

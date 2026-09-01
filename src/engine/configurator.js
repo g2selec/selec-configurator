@@ -1,4 +1,5 @@
 import { BASES, DISPLAYS, IOCARDS, FIXED_PLCS, ACC } from '../data/products'
+import { getProductImage } from '../data/productImages'
 
 // ─── DISPLAY SELECTION ────────────────────────────────────────────────────────
 function pickDisplay(baseCode) {
@@ -43,7 +44,7 @@ function buildMiBRX(baseCode, req, useIsolated = false) {
   let usedSlots = 0
 
   const add = (code, desc, hsn, mrp, qty, group, note = '') =>
-    items.push({ code, desc, hsn, mrp: +mrp.toFixed(2), qty, total: +(mrp * qty).toFixed(2), group, note })
+    items.push({ code, desc, hsn, mrp: +mrp.toFixed(2), qty, total: +(mrp * qty).toFixed(2), group, note, imageUrl: getProductImage(code) || '' })
 
   // Base + display
   add(baseCode, `MiBRX ${b.size} Base Module`, b.hsn, b.mrp, 1, 'CPU & Base')
