@@ -1,22 +1,49 @@
+import React from 'react'
 // ─── NUMBER STEPPER ──────────────────────────────────────────────────────────
 export function Stepper({ label, hint, value, onChange }) {
+  // Track raw string separately so user can clear and retype without fighting
+  const [raw, setRaw] = React.useState(String(value))
+
+  // Sync when parent resets value (e.g. "Start Over")
+  React.useEffect(() => { setRaw(String(value)) }, [value])
+
+  const handleChange = (e) => {
+    const str = e.target.value
+    // Allow empty string while typing — don't force 0 immediately
+    if (str === '' || str === '-') { setRaw(''); return }
+    const num = parseInt(str, 10)
+    if (!isNaN(num)) {
+      const clamped = Math.max(0, Math.min(99, num))
+      setRaw(String(clamped))
+      onChange(clamped)
+    }
+  }
+
+  const handleBlur = () => {
+    // On blur, if empty → set to 0
+    if (raw === '' || raw === '-') { setRaw('0'); onChange(0) }
+  }
+
+  const dec = () => { const v = Math.max(0, value - 1); setRaw(String(v)); onChange(v) }
+  const inc = () => { const v = Math.min(99, value + 1); setRaw(String(v)); onChange(v) }
+
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-[11px] font-semibold text-gray-500 tracking-wide">{label}</span>
       {hint && <span className="text-[11px] text-gray-400 -mt-1">{hint}</span>}
       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50 focus-within:border-yellow-400 focus-within:bg-white transition-colors">
-        <button
-          onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-9 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 text-lg font-light flex-shrink-0 transition-colors"
+        <button onClick={dec}
+          className="w-9 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 text-lg font-light flex-shrink-0 transition-colors select-none"
         >−</button>
         <input
-          type="number" min={0} max={99} value={value}
-          onChange={e => onChange(Math.max(0, Math.min(99, parseInt(e.target.value) || 0)))}
-          className="flex-1 border-none bg-transparent text-center text-[15px] font-bold text-navy outline-none min-w-0"
+          type="number" min={0} max={99}
+          value={raw}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className="flex-1 border-none bg-transparent text-center text-[15px] font-bold text-navy outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
-        <button
-          onClick={() => onChange(Math.min(99, value + 1))}
-          className="w-9 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 text-lg font-light flex-shrink-0 transition-colors"
+        <button onClick={inc}
+          className="w-9 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 text-lg font-light flex-shrink-0 transition-colors select-none"
         >+</button>
       </div>
     </div>
@@ -66,7 +93,7 @@ export function SlotBar({ used, total }) {
   const color = used > total ? 'bg-red-500' : pct > 80 ? 'bg-amber-400' : 'bg-selgreen'
   return (
     <div>
-      <div className="text-[11px] text-gray-400 mb-1">Expansion slots: {used}/{total}</div>
+      <div className="text-[11px] text-gray-400 mb-1">IO card slots used: {used} of {total}</div>
       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>

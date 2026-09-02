@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Pill, SlotBar, Alert } from './ui'
 import { getProductImage } from '../data/productImages'
 
-const inr = n => '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+const inr = n => { const num = Number(n); return '₹' + (Number.isInteger(num) ? num.toLocaleString('en-IN') : num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) }
 
 const TIER_STYLE = {
   'Economical · Simple':     { color: '#1a8c5b', bg: 'bg-green-50',  text: 'text-green-700' },

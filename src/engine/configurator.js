@@ -1,5 +1,6 @@
 import { BASES, DISPLAYS, DISPLAY_OPTIONS, DSP_PREF_MAP, IOCARDS, COMBO_CARDS,
-         FLEXYS, FLEXYS_IOCARDS, FIXED_PLCS, ACC } from '../data/products'
+         FLEXYS, FLEXYS_IOCARDS, FIXED_PLCS, ACC,
+         IO_COMPAT, BASE_TO_MATRIX } from '../data/products'
 import { getProductImage } from '../data/productImages'
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -28,6 +29,96 @@ function resolveOnboardAI(base, type) {
   if (ob.type === type) return ob.count
   if (ob.type === 'mixed' && ob.detail) return ob.detail[type] || 0
   return 0
+}
+
+// ─── IO CARD COMPATIBILITY VALIDATOR ─────────────────────────────────────────
+// Returns null if valid, or a rejection reason string if invalid
+// Called before generating a config — if invalid, base is skipped entirely
+
+function validateCardCompat(baseCode, req) {
+  const matrixKey = BASE_TO_MATRIX[baseCode]
+  if (!matrixKey) return null // no matrix data = no restriction
+  const m = IO_COMPAT[matrixKey]
+  if (!m) return null
+
+  // Helper: get compat rule for a card
+  const rule = (cardCode) => {
+    if (cardCode in m) return m[cardCode]
+    return true // not listed = assumed compatible
+  }
+
+  // Helper: check a card type — returns rejection string or null
+  const check = (cardCode, qty, label) => {
+    const r = rule(cardCode)
+    if (r === false) return `${label} cards not supported on this base`
+    if (r === 'S2_only' && qty > 1) return `Only 1 ${label} card supported (Slot 2 only)`
+    if (typeof r === 'number' && qty > r) return `Max ${r} ${label} card(s) on this base (requested ${qty})`
+    return null
+  }
+
+  const base = BASES[baseCode]
+
+  // Calculate card counts needed (same logic as buildMiBRX)
+  const obDI  = resolveOnboardDI(base, req.fi, req.aiV)
+  const obRO  = base.ro
+  const obAIV = resolveOnboardAI(base, 'V')
+  const obAII = resolveOnboardAI(base, 'I')
+
+  const diCards  = Math.max(0, (req.di||0)  - obDI)  > 0 ? Math.ceil(Math.max(0,(req.di||0)-obDI)/6)  : 0
+  const roCards  = Math.max(0, (req.ro||0)  - obRO)  > 0 ? Math.ceil(Math.max(0,(req.ro||0)-obRO)/4)  : 0
+  const toCards  = (req.to||0)  > 0 ? Math.ceil((req.to||0)/4)  : 0
+  const aoVCards = (req.aoV||0) > 0 ? Math.ceil((req.aoV||0)/2) : 0
+  const aoICards = (req.aoI||0) > 0 ? Math.ceil((req.aoI||0)/2) : 0
+  const dlCards  = (req.dl && !base.rtc) ? 1 : 0
+  const wifiCards= req.wifi ? 1 : 0
+  const lcCards  = (req.aiLC||0) > 0 ? Math.ceil((req.aiLC||0)/2) : 0
+
+  // RO card check
+  if (roCards > 0) {
+    const roCard = IOCARDS.ro[0] // MIBRX-SC-RO04
+    const err = check(roCard.code, roCards, 'Relay Output')
+    if (err) return err
+  }
+
+  // AO card check
+  const aoCards = aoVCards + aoICards
+  if (aoCards > 0) {
+    const aoCard = 'MIBRX-SC-AO02-V-I-ISO'
+    const err = check(aoCard, aoCards, 'Analog Output')
+    if (err) return err
+  }
+
+  // Combined RO + AO limit (230V models)
+  const maxCombined = m._max_ro_ao_combined
+  if (maxCombined !== null && maxCombined !== undefined) {
+    const combined = roCards + aoCards
+    if (combined > maxCombined) {
+      return `Combined Relay Output + Analog Output cards exceed limit of ${maxCombined} on this 230V base (need ${combined})`
+    }
+  }
+
+  // DL card check
+  if (dlCards > 0) {
+    const r = rule('MIBRX-SC-DL')
+    if (r === false) return 'Datalogging card not supported on this base'
+    // If DL is S2_only and we also have AI/AO/LC cards — calibration conflict warning
+    // (we allow but note it — not a hard block since user may not need calibration)
+  }
+
+  // WiFi card check
+  if (wifiCards > 0) {
+    const r = rule('MIBRX-SC-WIFI')
+    if (r === false) return 'WiFi card not supported on this base'
+    if (r === 'S2_only' && (dlCards > 0)) return 'WiFi and Datalogging both require Slot 2 — cannot use both on this base'
+  }
+
+  // LC card check
+  if (lcCards > 0) {
+    const r = rule('MIBRX-SC-LC02')
+    if (r === false) return 'Load Cell card not supported on this base'
+  }
+
+  return null // all good
 }
 
 // ─── DISPLAY PICKER ───────────────────────────────────────────────────────────
@@ -185,7 +276,7 @@ function buildMiBRX(baseCode, req, dspPref, useIsolated = false) {
 
   // Slot overflow check
   if (usedSlots > base.slots)
-    warnings.push(`Requires ${usedSlots} expansion slots — base has ${base.slots}. Consider a larger base.`)
+    warnings.push(`Requires ${usedSlots} IO card slots — base has ${base.slots}. Consider a larger base.`)
 
   // ── Accessories (mandatory, separate section) ─────────────────────────────
   if (base.smps) addACC(base.smps, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Required for 24VDC supply')
@@ -194,8 +285,7 @@ function buildMiBRX(baseCode, req, dspPref, useIsolated = false) {
   const dlAcc = ACC[base.dlCable === 'AC-USB-RS485-02' ? 'dlMiBRX' : 'dlFlexys']
   addACC(base.dlCable, dlAcc.desc, dlAcc.hsn, dlAcc.mrp, 1, 'Programming cable')
 
-  // Expansion cable if multiple slot cards used
-  if (usedSlots > 1) addACC(ACC.expCable.code, ACC.expCable.desc, ACC.expCable.hsn, ACC.expCable.mrp, 1, 'For slot card expansion')
+  // Expansion cable only needed for multi-unit (master+slave) — not added here
 
   // HMI communication cable
   if (req.hmi) addACC(ACC.commCable.code, ACC.commCable.desc, ACC.commCable.hsn, ACC.commCable.mrp, 1, 'For HMI connection')
@@ -276,7 +366,7 @@ function buildFlexys(subfamily, req) {
     // Check for expansion
     if (usedSlots > fam.maxSlots) {
       const expNeeded = Math.ceil((usedSlots - fam.maxSlots) / 4)
-      warnings.push(`Requires expansion module(s) — add ${expNeeded}× EXP FLEX 2M (₹3,291.20 each)`)
+      warnings.push(`Requires expansion rack(s) — add ${expNeeded}× EXP FLEX 2M (₹3,291.20 each)`)
     }
     addPLC(card.code, card.desc, card.hsn, card.mrp, qty)
   }
@@ -338,7 +428,7 @@ export function generateBuckets(req) {
     const plcTotal = plcItems.reduce((s, i) => s + i.total, 0)
     const accTotal = accItems.reduce((s, i) => s + i.total, 0)
     candidates.push({
-      family: plc.series, code: plc.code, mnt: 'Any', ps: plc.ps,
+      family: plc.series, code: plc.code, mnt: 'Din Rail', ps: plc.ps,
       plcItems, accItems, plcTotal: +plcTotal.toFixed(2), accTotal: +accTotal.toFixed(2),
       total: +(plcTotal + accTotal).toFixed(2),
       usedSlots: 0, totalSlots: 0, warnings: [],
@@ -356,7 +446,10 @@ export function generateBuckets(req) {
   const validBases = Object.keys(BASES).filter(code => {
     const b = BASES[code]
     if (req.eth && !b.eth) return false
-    return slotsNeeded(code, req) <= b.slots
+    if (slotsNeeded(code, req) > b.slots) return false
+    const compatError = validateCardCompat(code, req)
+    if (compatError) return false
+    return true
   })
 
   for (const baseCode of validBases) {
@@ -367,7 +460,7 @@ export function generateBuckets(req) {
       ...cfg,
       pills: [
         { t: `${b.slots} Slots`, c: 'blue' },
-        { t: `${cfg.usedSlots}/${b.slots} Used`, c: cfg.usedSlots > b.slots ? 'amber' : 'green' },
+        { t: `${cfg.usedSlots}/${b.slots} Slots`, c: cfg.usedSlots > b.slots ? 'amber' : 'green' },
         { t: b.ps, c: 'gray' },
         { t: b.mnt, c: 'gray' },
         ...(b.eth ? [{ t: 'Ethernet', c: 'blue' }] : []),
@@ -435,11 +528,15 @@ export function generateBuckets(req) {
   const pool = dspFiltered.length > 0 ? dspFiltered : candidates
 
   // ── Internal 4-quadrant ranking (background) ─────────────────────────────
-  const sorted  = [...pool].sort((a, b) => a.total - b.total)
-  const midCost = sorted[Math.floor(sorted.length / 2)]?.total || 0
+  const sorted     = [...pool].sort((a, b) => a.total - b.total)
+  const midCost    = sorted[Math.floor(sorted.length / 2)]?.total || 0
+
+  // Complexity split is relative to the pool — median complexity, not absolute threshold
+  const complexities = pool.map(c => complexityScore(c)).sort((a, b) => a - b)
+  const midComplex   = complexities[Math.floor(complexities.length / 2)] || 10
 
   const isLowCost    = c => c.total <= midCost
-  const isLowComplex = c => complexityScore(c) <= 10
+  const isLowComplex = c => complexityScore(c) <= midComplex
 
   const quadrants = [
     { id:1, label:'Economical · Simple',     filter: c =>  isLowCost(c) &&  isLowComplex(c), icon:'🟢' },
@@ -481,17 +578,32 @@ export function generateBuckets(req) {
     }
   }
 
-  // ── Always return top 3 (sorted by rank = quadrant priority) ─────────────
-  const buckets = ranked
-    .sort((a, b) => a.rank - b.rank)
-    .slice(0, 3)
-    .map((b, i) => ({ ...b, rank: i + 1 })) // re-number 1–3
+  // ── Return all ranked candidates + top 3 default ────────────────────────
+  // ResultsStep picks top 3 after applying filters (mount, power, display)
+  // This way filtering always re-selects top 3 from the filtered pool
 
-  return { buckets, warnings }
+  // Ensure every candidate has a name
+  pool.forEach(c => {
+    if (!c.name) {
+      c.name = `${c.family || ''} – ${(c.code || c.baseCode || '').replace('-ISO','')}`
+    }
+    if (!c.tagline) {
+      c.tagline = buildTagline(c, c.tier || '')
+    }
+  })
+
+  // Return the full pool (all valid configs) so ResultsStep can filter freely
+  // ranked preserves quadrant ordering — pool is the complete set
+  ranked.forEach((r, i) => { r._quadrantRank = i + 1 })
+  pool.forEach(c => { if (!c._quadrantRank) c._quadrantRank = 99 })
+  const allSorted = [...pool].sort((a, b) => (a._quadrantRank - b._quadrantRank) || a.total - b.total)
+  return { allCandidates: allSorted, warnings }
 }
 
 function buildTagline(cfg, tier) {
   const units = cfg.unitCount === 1 ? 'Single unit' : `${cfg.unitCount} units`
-  const cards = cfg.cardCount > 0 ? `, ${cfg.cardCount} expansion card${cfg.cardCount > 1 ? 's' : ''}` : ', no expansion cards'
+  const cards = cfg.cardCount > 0
+    ? `, ${cfg.cardCount} IO slot card${cfg.cardCount > 1 ? 's' : ''}`
+    : ', all IO on-board'
   return `${units}${cards} · ${tier}`
 }

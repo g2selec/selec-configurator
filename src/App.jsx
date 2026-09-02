@@ -28,7 +28,7 @@ export default function App() {
     const res = generateBuckets({ ...io, ...sp })
     setResult(res)
     setStep(2)
-    captureRequirement(io, sp, res.buckets)
+    captureRequirement(io, sp, res.allCandidates || [])
   }
 
   const handleCaptureLead = async (leadData, selectedBucket) => {

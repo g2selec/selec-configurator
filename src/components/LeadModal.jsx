@@ -41,7 +41,7 @@ export default function LeadModal({ bucket, onSubmit, onClose }) {
               We'll email a formal Selec quotation for{' '}
               <strong className="text-navy">{bucket?.name}</strong> — indicative MRP{' '}
               <strong className="text-navy">
-                ₹{Number(bucket?.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                ₹{Number(bucket?.total || 0).toLocaleString('en-IN')}
               </strong>
             </p>
             <div className="flex flex-col gap-4 mb-5">
