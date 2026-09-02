@@ -55,8 +55,8 @@ export default function ResultsStep({ result, io, sp, onBack, onCaptureLead }) {
 
   const handleSelectForEmail = (bucket) => setModal(bucket)
 
-  const handleSubmitLead = async (name, email) => {
-    await onCaptureLead(name, email, modal)
+  const handleSubmitLead = async (leadData) => {
+    await onCaptureLead(leadData, modal)
   }
 
   return (

@@ -31,8 +31,8 @@ export default function App() {
     captureRequirement(io, sp, res.buckets)
   }
 
-  const handleCaptureLead = async (name, email, selectedBucket) => {
-    await captureLead(name, email, io, sp, selectedBucket)
+  const handleCaptureLead = async (leadData, selectedBucket) => {
+    await captureLead(leadData, io, sp, selectedBucket)
   }
 
   return (
