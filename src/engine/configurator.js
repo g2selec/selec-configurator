@@ -415,64 +415,78 @@ export function generateBuckets(req) {
     return { buckets: [], warnings }
   }
 
-  // ── Sort into 4 buckets ───────────────────────────────────────────────────
-  // complexity = complexityScore (lower = simpler)
-  // cost = total MRP
+  // ── Apply display preference filter ─────────────────────────────────────────
+  // Filter candidates whose display type matches user preference
+  const dspFiltered = dspPref === 'Any'
+    ? candidates
+    : candidates.filter(c => {
+        // Fixed PLCs have no display — always include them
+        if (c.cardCount === 0 && c.unitCount === 1 && !c.totalSlots) return true
+        // Flexys Graphic has built-in 3.5" touch display
+        if (c.family === 'Flexys Graphic') return dspPref === '3.5 Inch HMI' || dspPref === 'Any'
+        // MiBRX — check if any display option for this base supports the preference
+        if (!c.baseCode) return true
+        const base = BASES[c.baseCode.replace('-ISO','')]
+        if (!base) return true
+        const opts = DISPLAY_OPTIONS[base.size] || []
+        return opts.some(k => DISPLAYS[k]?.dspType === dspPref)
+      })
 
-  const sorted = [...candidates].sort((a, b) => a.total - b.total)
+  const pool = dspFiltered.length > 0 ? dspFiltered : candidates
+
+  // ── Internal 4-quadrant ranking (background) ─────────────────────────────
+  const sorted  = [...pool].sort((a, b) => a.total - b.total)
   const midCost = sorted[Math.floor(sorted.length / 2)]?.total || 0
 
   const isLowCost    = c => c.total <= midCost
-  const isLowComplex = c => complexityScore(c) <= 10 // 1 unit, ≤0 extra cards
+  const isLowComplex = c => complexityScore(c) <= 10
 
-  // Four buckets: pick best candidate per quadrant
   const quadrants = [
-    { id: 1, label: 'Economical · Simple',    filter: c => isLowCost(c) && isLowComplex(c),  icon: '🟢' },
-    { id: 2, label: 'Economical · Scalable',  filter: c => isLowCost(c) && !isLowComplex(c), icon: '🔵' },
-    { id: 3, label: 'Premium · Simple',       filter: c => !isLowCost(c) && isLowComplex(c), icon: '🟡' },
-    { id: 4, label: 'Premium · Full Featured',filter: c => !isLowCost(c) && !isLowComplex(c),icon: '🟣' },
+    { id:1, label:'Economical · Simple',     filter: c =>  isLowCost(c) &&  isLowComplex(c), icon:'🟢' },
+    { id:2, label:'Economical · Scalable',   filter: c =>  isLowCost(c) && !isLowComplex(c), icon:'🔵' },
+    { id:3, label:'Premium · Simple',        filter: c => !isLowCost(c) &&  isLowComplex(c), icon:'🟡' },
+    { id:4, label:'Premium · Full Featured', filter: c => !isLowCost(c) && !isLowComplex(c), icon:'🟣' },
   ]
 
-  const buckets = []
-  const used = new Set()
+  const ranked = []
+  const used   = new Set()
 
   for (const q of quadrants) {
-    const matches = candidates
+    const matches = pool
       .filter((c, i) => q.filter(c) && !used.has(i))
       .sort((a, b) => a.total - b.total || complexityScore(a) - complexityScore(b))
     if (matches.length > 0) {
       const best = matches[0]
-      const idx  = candidates.indexOf(best)
-      used.add(idx)
-      buckets.push({
-        rank: q.id, tier: q.label, icon: q.icon,
-        name: `${best.family} – ${best.code?.replace('-ISO', '') || ''}`,
+      used.add(pool.indexOf(best))
+      ranked.push({ rank:q.id, tier:q.label, icon:q.icon, ...best,
+        name: `${best.family} – ${(best.code||'').replace('-ISO','')}`,
         tagline: buildTagline(best, q.label),
-        ...best,
       })
     }
   }
 
-  // If any bucket is empty, fill from remaining sorted candidates
-  for (let i = 1; i <= 4; i++) {
-    if (!buckets.find(b => b.rank === i)) {
-      const q = quadrants[i - 1]
-      const remaining = candidates.filter((c, idx) => !used.has(idx))
+  // Fill any empty quadrant from remaining pool
+  for (const q of quadrants) {
+    if (!ranked.find(b => b.rank === q.id)) {
+      const remaining = pool.filter((c, i) => !used.has(i))
         .sort((a, b) => a.total - b.total)
       if (remaining.length > 0) {
         const best = remaining[0]
-        used.add(candidates.indexOf(best))
-        buckets.push({
-          rank: i, tier: q.label, icon: q.icon,
-          name: `${best.family} – ${best.code?.replace('-ISO', '') || ''}`,
+        used.add(pool.indexOf(best))
+        ranked.push({ rank:q.id, tier:q.label, icon:q.icon, ...best,
+          name: `${best.family} – ${(best.code||'').replace('-ISO','')}`,
           tagline: buildTagline(best, q.label),
-          ...best,
         })
       }
     }
   }
 
-  buckets.sort((a, b) => a.rank - b.rank)
+  // ── Always return top 3 (sorted by rank = quadrant priority) ─────────────
+  const buckets = ranked
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 3)
+    .map((b, i) => ({ ...b, rank: i + 1 })) // re-number 1–3
+
   return { buckets, warnings }
 }
 

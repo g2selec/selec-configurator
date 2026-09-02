@@ -43,13 +43,11 @@ function SummaryStrip({ io, sp, count }) {
 export default function ResultsStep({ result, io, sp, onBack, onCaptureLead }) {
   const { buckets, warnings } = result
   const [filterMnt, setFilterMnt] = useState('All')
-  const [filterPs,  setFilterPs]  = useState('All')
   const [selectedHMI, setSelectedHMI] = useState(null)
   const [modal, setModal]   = useState(null) // bucket to email
 
   const shown = buckets.filter(b => {
     if (filterMnt !== 'All' && b.mnt && b.mnt !== filterMnt) return false
-    if (filterPs  !== 'All' && b.ps  && !b.ps.includes(filterPs.replace('VAC','').replace('VDC',''))) return false
     return true
   })
 
