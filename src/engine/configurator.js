@@ -1,6 +1,8 @@
-import { BASES, DISPLAYS, DISPLAY_OPTIONS, DSP_PREF_MAP, IOCARDS, COMBO_CARDS,
+import { BASES, HMI_OPTIONS, DISPLAYS, DISPLAY_OPTIONS, DSP_PREF_MAP, IOCARDS, COMBO_CARDS,
          FLEXYS, FLEXYS_IOCARDS, FIXED_PLCS, ACC,
-         IO_COMPAT, BASE_TO_MATRIX } from '../data/products'
+         IO_COMPAT, BASE_TO_MATRIX,
+         FLEXYS_SETS, FLEXYS_EXP, FLEXYS_ACC_SET1, FLEXYS_ACH004,
+         FLEXYS_HMI_CABLE, FLEXYS_DL, FLEXYS_CASES, FLEXYS_MAX_SLOTS } from '../data/products'
 import { getProductImage } from '../data/productImages'
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -326,83 +328,171 @@ function fixedFits(plc, req) {
   return true
 }
 
+// ─── FLEXYS SLOT CALCULATOR ──────────────────────────────────────────────────
+// Counts IO cards needed — PS card's 4 built-in DI used first, no slot consumed
+function calcFlexysSlots(req, psDI) {
+  const obDI = psDI || 0
+  const extraDI = Math.max(0, (req.di || 0) - obDI)
+
+  let slots = 0
+  if (extraDI > 0)       slots += Math.ceil(extraDI / FLEXYS_IOCARDS.di[0].ch)
+  if (req.ro  > 0)       slots += Math.ceil(req.ro  / FLEXYS_IOCARDS.ro[0].ch)
+  if (req.to  > 0)       slots += Math.ceil(req.to  / FLEXYS_IOCARDS.to[0].ch)
+  if (req.aiV > 0)       slots += Math.ceil(req.aiV / FLEXYS_IOCARDS.aiV[0].ch)
+  if (req.aiI > 0)       slots += Math.ceil(req.aiI / FLEXYS_IOCARDS.aiI[0].ch)
+  if (req.aiTC > 0)      slots += Math.ceil(req.aiTC / FLEXYS_IOCARDS.aiTC[0].ch)
+  if (req.aiRTD > 0)     slots += Math.ceil(req.aiRTD / FLEXYS_IOCARDS.aiRTD[0].ch)
+  if (req.aiLC > 0)      slots += Math.ceil(req.aiLC / FLEXYS_IOCARDS.aiLC[0].ch)
+  if (req.aiNTC > 0)     slots += Math.ceil(req.aiNTC / FLEXYS_IOCARDS.aiNTC[0].ch)
+  if (req.aoV > 0)       slots += Math.ceil(req.aoV / FLEXYS_IOCARDS.aoV[0].ch)
+  if (req.aoI > 0)       slots += Math.ceil(req.aoI / FLEXYS_IOCARDS.aoI[0].ch)
+  return slots
+}
+
 // ─── FLEXYS BOM BUILDER ───────────────────────────────────────────────────────
-function buildFlexys(subfamily, req) {
-  const fam = FLEXYS[subfamily]
+function buildFlexysConfig(mainSet, req, selectedPs, hmiOption) {
   const plcItems = []
   const accItems = []
   const warnings = []
-  let usedSlots = 0
 
   const addPLC = (code, desc, hsn, mrp, qty, note = '') =>
     plcItems.push(makeItem(code, desc, hsn, mrp, qty, 'PLC', note))
   const addACC = (code, desc, hsn, mrp, qty, note = '') =>
     accItems.push(makeItem(code, desc, hsn, mrp, qty, 'Accessories', note))
 
-  // Pick PS card by power supply
-  const psCard = req.ps === '90 to 270 VAC'
-    ? fam.psOptions.find(p => p.ps === '90 to 270 VAC')
-    : fam.psOptions.find(p => p.ps === '18 to 32 VDC')
-  if (!psCard) { return null }
+  const setDef  = FLEXYS_SETS[mainSet]  // 'set1' or 'set2'
+  const ps      = selectedPs === '90 to 270 VAC'
+    ? setDef.psOptions.find(p => p.ps === '90 to 270 VAC')
+    : setDef.psOptions.find(p => p.ps === '18 to 32 VDC')
+  if (!ps) return null
 
-  // Base
-  const base = fam.base
-  addPLC(base.code, base.desc, base.hsn, base.mrp, 1)
+  const psDI    = ps.di || 0
+  const slotsNeeded = calcFlexysSlots(req, psDI)
 
-  // Logic card (Flexys Rail and Graphic have separate logic card; TX4 is combined)
-  if (fam.logicCard) addPLC(fam.logicCard.code, fam.logicCard.desc, fam.logicCard.hsn, fam.logicCard.mrp, 1)
-
-  // PS card (has 4 built-in DI — no pin sharing on Flexys)
-  addPLC(psCard.code, psCard.desc, psCard.hsn, psCard.mrp, 1)
-  const obDI = psCard.di || 0
-
-  // IO cards — Flexys uses its own larger cards
-  const remDI  = Math.max(0, (req.di  || 0) - obDI)
-  const assignF = (remaining, cardDefs) => {
-    if (!remaining || remaining <= 0) return
-    const card = cardDefs[0]
-    const qty  = Math.ceil(remaining / card.ch)
-    usedSlots += qty
-    // Check for expansion
-    if (usedSlots > fam.maxSlots) {
-      const expNeeded = Math.ceil((usedSlots - fam.maxSlots) / 4)
-      warnings.push(`Requires expansion rack(s) — add ${expNeeded}× EXP FLEX 2M (₹3,291.20 each)`)
-    }
-    addPLC(card.code, card.desc, card.hsn, card.mrp, qty)
+  // Fallback if exceeds max
+  if (slotsNeeded > FLEXYS_MAX_SLOTS) {
+    return { tooLarge: true, slotsNeeded }
   }
 
-  assignF(remDI,          FLEXYS_IOCARDS.di)
-  assignF(req.ro||0,      FLEXYS_IOCARDS.ro)
-  assignF(req.to||0,      FLEXYS_IOCARDS.to)
-  assignF(req.aiV||0,     FLEXYS_IOCARDS.aiV)
-  assignF(req.aiI||0,     FLEXYS_IOCARDS.aiI)
-  assignF(req.aiTC||0,    FLEXYS_IOCARDS.aiTC)
-  assignF(req.aiRTD||0,   FLEXYS_IOCARDS.aiRTD)
-  assignF(req.aiLC||0,    FLEXYS_IOCARDS.aiLC)
-  assignF(req.aiNTC||0,   FLEXYS_IOCARDS.aiNTC)
-  assignF(req.aoV||0,     FLEXYS_IOCARDS.aoV)
-  assignF(req.aoI||0,     FLEXYS_IOCARDS.aoI)
+  // Find the right case
+  const caseRow = FLEXYS_CASES.find(c => slotsNeeded >= c.minSlots && slotsNeeded <= c.maxSlots)
+  if (!caseRow) return { tooLarge: true, slotsNeeded }
 
-  // Accessories
-  if (psCard.smps) addACC(psCard.smps, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Required for 24VDC')
-  const dlAcc = ACC.dlFlexys
-  addACC(fam.dlCable, dlAcc.desc, dlAcc.hsn, dlAcc.mrp, 1, 'Programming cable')
-  if (req.hmi) addACC(ACC.commCable.code, ACC.commCable.desc, ACC.commCable.hsn, ACC.commCable.mrp, 1, 'For HMI connection')
+  // ── Main unit ──────────────────────────────────────────────────────────────
+  if (mainSet === 'set1') {
+    // TX4 — base is the logic card combined
+    addPLC(setDef.base.code, setDef.base.desc, setDef.base.hsn, setDef.base.mrp, 1)
+  } else {
+    // Rail — separate base + logic card
+    addPLC(setDef.base.code,      setDef.base.desc,      setDef.base.hsn,      setDef.base.mrp,      1)
+    addPLC(setDef.logicCard.code, setDef.logicCard.desc, setDef.logicCard.hsn, setDef.logicCard.mrp, 1)
+  }
+  addPLC(ps.code, ps.desc, ps.hsn, ps.mrp, 1, 'Main unit power supply')
+
+  // ── IO cards on main unit ─────────────────────────────────────────────────
+  // Fill main unit slots first (up to 4), rest go to slave slots
+  const mainSlotsAvail = setDef.ioSlots
+  let slotsRemaining   = slotsNeeded
+  let slotsOnMain      = Math.min(slotsRemaining, mainSlotsAvail)
+  // (IO cards are added as a group — engine doesn't split across units at card level)
+  // Add all IO cards — they'll physically distribute across main + slaves
+  const addIOCards = (needed, cardDefs, label) => {
+    if (!needed || needed <= 0) return
+    const card = cardDefs[0]
+    const qty  = Math.ceil(needed / card.ch)
+    addPLC(card.code, card.desc, card.hsn, card.mrp, qty, label)
+  }
+
+  const extraDI = Math.max(0, (req.di || 0) - psDI)
+  addIOCards(extraDI,        FLEXYS_IOCARDS.di,   `${psDI} DI from PS card · ${extraDI} via IO cards`)
+  addIOCards(req.ro  || 0,   FLEXYS_IOCARDS.ro,   '')
+  addIOCards(req.to  || 0,   FLEXYS_IOCARDS.to,   '')
+  addIOCards(req.aiV || 0,   FLEXYS_IOCARDS.aiV,  '')
+  addIOCards(req.aiI || 0,   FLEXYS_IOCARDS.aiI,  '')
+  addIOCards(req.aiTC || 0,  FLEXYS_IOCARDS.aiTC, '')
+  addIOCards(req.aiRTD || 0, FLEXYS_IOCARDS.aiRTD,'')
+  addIOCards(req.aiLC || 0,  FLEXYS_IOCARDS.aiLC, '')
+  addIOCards(req.aiNTC || 0, FLEXYS_IOCARDS.aiNTC,'')
+  addIOCards(req.aoV || 0,   FLEXYS_IOCARDS.aoV,  '')
+  addIOCards(req.aoI || 0,   FLEXYS_IOCARDS.aoI,  '')
+
+  // ── EXP FLEX 2M modules ───────────────────────────────────────────────────
+  if (caseRow.expFlex > 0) {
+    addPLC(FLEXYS_EXP.code, FLEXYS_EXP.desc, FLEXYS_EXP.hsn, FLEXYS_EXP.mrp, caseRow.expFlex,
+      `Expansion slot${caseRow.expFlex > 1 ? 's' : ''} for extra IO cards`)
+  }
+
+  // ── Set 2 slave units ─────────────────────────────────────────────────────
+  const slaveSet = FLEXYS_SETS.set2
+  const slavePs  = selectedPs === '90 to 270 VAC'
+    ? slaveSet.psOptions.find(p => p.ps === '90 to 270 VAC')
+    : slaveSet.psOptions.find(p => p.ps === '18 to 32 VDC')
+
+  if (caseRow.set2Slaves > 0 && slavePs) {
+    addPLC(slaveSet.base.code,      slaveSet.base.desc,      slaveSet.base.hsn,      slaveSet.base.mrp,      caseRow.set2Slaves, 'Slave unit base')
+    addPLC(slaveSet.logicCard.code, slaveSet.logicCard.desc, slaveSet.logicCard.hsn, slaveSet.logicCard.mrp, caseRow.set2Slaves, 'Slave unit logic card')
+    addPLC(slavePs.code,            slavePs.desc,            slavePs.hsn,            slavePs.mrp,            caseRow.set2Slaves, 'Slave unit power supply')
+  }
+
+  // ── HMI ───────────────────────────────────────────────────────────────────
+  if (hmiOption) {
+    addPLC(hmiOption.code, hmiOption.desc, '85371090', hmiOption.mrp, 1, 'External HMI Panel')
+  }
+
+  // ── Accessories ───────────────────────────────────────────────────────────
+  // SMPS for main if 24VDC
+  if (ps.smps) addACC(ACC.smps.code, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Main unit SMPS')
+
+  // Accessory Set 1 × accSet1Count (RPS60 + ACH-004 + AC-IOEXP-03)
+  if (caseRow.accSet1Count > 0) {
+    FLEXYS_ACC_SET1.forEach(a => {
+      addACC(a.code, a.desc, a.hsn, a.mrp, caseRow.accSet1Count, 'Accessory Set 1')
+    })
+  }
+
+  // Extra ACH-004 per Set 2 slave (beyond what's in Acc Set 1)
+  if (caseRow.needACH004 && caseRow.set2Slaves > 0) {
+    addACC(FLEXYS_ACH004.code, FLEXYS_ACH004.desc, FLEXYS_ACH004.hsn, FLEXYS_ACH004.mrp,
+      caseRow.set2Slaves, 'Inter-unit expansion cable')
+  }
+
+  // HMI cable
+  if (hmiOption) {
+    addACC(FLEXYS_HMI_CABLE.code, FLEXYS_HMI_CABLE.desc, FLEXYS_HMI_CABLE.hsn, FLEXYS_HMI_CABLE.mrp, 1, 'HMI communication cable')
+  }
+
+  // Download cable
+  const dlCable = caseRow.dlMulti ? FLEXYS_DL.multi : FLEXYS_DL.single
+  addACC(dlCable.code, dlCable.desc, dlCable.hsn, dlCable.mrp, 1, 'Programming cable')
 
   const plcTotal = plcItems.reduce((s, i) => s + i.total, 0)
   const accTotal = accItems.reduce((s, i) => s + i.total, 0)
   const total    = +(plcTotal + accTotal).toFixed(2)
 
+  // Complexity: 1 main + slaves = unitCount
+  const unitCount = 1 + caseRow.set2Slaves
+  const cardCount = slotsNeeded
+
   return {
-    plcItems, accItems, plcTotal: +plcTotal.toFixed(2), accTotal: +accTotal.toFixed(2), total,
-    usedSlots, totalSlots: fam.maxSlots, warnings,
-    series: fam.label, baseCode: base.code,
-    mnt: fam.mnt, ps: psCard.ps, dsp: 'N/A',
-    unitCount: 1 + Math.floor(usedSlots / (fam.maxSlots + 1)),
-    cardCount: usedSlots
+    plcItems, accItems,
+    plcTotal: +plcTotal.toFixed(2),
+    accTotal: +accTotal.toFixed(2),
+    total,
+    usedSlots: slotsNeeded,
+    totalSlots: mainSlotsAvail + (caseRow.set2Slaves * 4) + caseRow.expFlex,
+    warnings,
+    series: setDef.label,
+    baseCode: setDef.base.code,
+    mnt: mainSet === 'set1' ? 'Panel' : 'Din Rail',
+    ps: selectedPs || 'Any',
+    dsp: hmiOption ? '3.5 Inch HMI' : 'Any',
+    unitCount,
+    cardCount,
+    caseIndex: FLEXYS_CASES.indexOf(caseRow) + 1,
   }
 }
 
+// ─── COMPLEXITY SCORE ────────────────────────────────────────────────────────
 // ─── COMPLEXITY SCORE ─────────────────────────────────────────────────────────
 // Lower = less complex.  unitCount × 10 + cardCount
 function complexityScore(cfg) {
@@ -484,19 +574,70 @@ export function generateBuckets(req) {
   }
 
   // ── Flexys ────────────────────────────────────────────────────────────────
-  // Only if no ethernet/wifi required (Flexys comms via Modbus only)
-  if (!req.wifi) {
-    for (const subfamily of ['rail', 'tx4', 'graphic']) {
-      const cfg = buildFlexys(subfamily, req)
-      if (cfg) {
-        const fam = FLEXYS[subfamily]
+  // Only if no ethernet/wifi required (Flexys uses Modbus only)
+  // No mix with MiBRX — completely separate family
+  if (!req.wifi && !req.eth) {
+    const flexysConfigs = [
+      { mainSet:'set1', label:'Flexys TX4',   mnt:'Panel',    psLabel: req.ps },
+      { mainSet:'set2', label:'Flexys Rail',  mnt:'Din Rail', psLabel: req.ps },
+    ]
+
+    for (const fc of flexysConfigs) {
+      // Try both power supply options if user hasn't specified
+      const psOptions = fc.psLabel && fc.psLabel !== 'Any'
+        ? [fc.psLabel]
+        : ['90 to 270 VAC', '18 to 32 VDC']
+
+      for (const psOpt of psOptions) {
+        const cfg = buildFlexysConfig(fc.mainSet, req, psOpt, null)
+        if (!cfg) continue
+
+        if (cfg.tooLarge) {
+          // Add a warning to the global warnings list once
+          if (!warnings.find(w => w.includes('Flexys'))) {
+            warnings.push(
+              `Your IO requirement needs ${cfg.slotsNeeded} IO card slots which exceeds the maximum Flexys capacity of ${FLEXYS_MAX_SLOTS} slots. ` +
+              `Please contact Selec support at plc1@selec.com for a custom configuration.`
+            )
+          }
+          continue
+        }
+
+        const setDef = FLEXYS_SETS[fc.mainSet]
         candidates.push({
-          family: fam.label, code: fam.base.code, mnt: fam.mnt, ps: req.ps || 'Any',
+          family: fc.label,
+          code:   setDef.base.code,
+          mnt:    cfg.mnt,
+          ps:     psOpt,
           ...cfg,
           pills: [
-            { t: fam.label, c: 'purple' },
-            { t: `${cfg.usedSlots}/${cfg.totalSlots} Slots`, c: cfg.usedSlots > cfg.totalSlots ? 'amber' : 'green' },
-            { t: fam.mnt, c: 'gray' },
+            { t: fc.label, c: 'purple' },
+            { t: `${cfg.usedSlots}/${cfg.totalSlots} Slots`, c: 'blue' },
+            { t: psOpt.includes('VDC') ? '24VDC' : '230VAC', c: 'gray' },
+            { t: cfg.mnt, c: 'gray' },
+            ...(cfg.unitCount > 1 ? [{ t: `${cfg.unitCount} Units`, c: 'amber' }] : []),
+          ]
+        })
+        break // one PS option per mounting is enough
+      }
+    }
+
+    // Flexys Rail with HMI (if user requested HMI)
+    if (req.hmi) {
+      const hmiOpt = HMI_OPTIONS[1] // default 4.3" CE
+      const cfg = buildFlexysConfig('set2', req, req.ps && req.ps !== 'Any' ? req.ps : '18 to 32 VDC', hmiOpt)
+      if (cfg && !cfg.tooLarge) {
+        candidates.push({
+          family: 'Flexys Rail + HMI',
+          code:   FLEXYS_SETS.set2.base.code + '-HMI',
+          mnt:    'Din Rail',
+          ps:     cfg.ps,
+          ...cfg,
+          pills: [
+            { t: 'Flexys Rail', c: 'purple' },
+            { t: 'HMI Panel', c: 'blue' },
+            { t: `${cfg.usedSlots}/${cfg.totalSlots} Slots`, c: 'blue' },
+            ...(cfg.unitCount > 1 ? [{ t: `${cfg.unitCount} Units`, c: 'amber' }] : []),
           ]
         })
       }

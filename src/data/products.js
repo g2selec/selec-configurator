@@ -525,3 +525,86 @@ export const BASE_TO_MATRIX = {
   'MIBRX-96-1-1-230V':          'MIBRX-96-230V',
   'MIBRX-96-1-1-24VDC':         'MIBRX-96-24V',
 }
+
+// ─── FLEXYS CONFIG CASES ─────────────────────────────────────────────────────
+// Source: Flexys Config sheet — Product_Selection_Tool__2_.xlsx
+// Cases are a lookup table: given slotsNeeded + mounting + hmi → BOM structure
+
+// Component sets
+export const FLEXYS_SETS = {
+  set1: {
+    // Panel mount — TX4 base
+    label: 'Flexys TX4 (Panel)',
+    mnt: 'Panel',
+    base:      { code:'FL-TX4-LG-1-0-1-V2-CE-RoHS', mrp:17560, hsn:'85371090', desc:'Flexys Panel TX4 – Logic card – RTC, MODBUS' },
+    psOptions: [
+      { code:'FL-TX4-DI04-PS-230V-CE-RoHS', mrp:4220, hsn:'85389000', desc:'Flexys TX4 PS – 230VAC, 4 DI', ps:'90 to 270 VAC', di:4 },
+      { code:'FL-TX4-DI04-PS-24V-CE-RoHS',  mrp:3908, hsn:'85389000', desc:'Flexys TX4 PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
+    ],
+    ioSlots: 4,
+    dlCable: 'AC-USB-RS485-03',
+  },
+  set2: {
+    // Rail or Panel slave — Rail base
+    label: 'Flexys Rail',
+    mnt: 'Din Rail',
+    base:      { code:'FL-RL-BS-6-CE-RoHS',          mrp:3067,  hsn:'85371090', desc:'Flexys Rail – Base Card (4 IO slots)' },
+    logicCard: { code:'FL-RL-LG-1-0-1-V2-CE-RoHS',   mrp:11708, hsn:'85371090', desc:'Flexys Rail – Logic Card – RTC, MODBUS' },
+    psOptions: [
+      { code:'FL-RL-PS-230V',               mrp:2897,  hsn:'85389000', desc:'Flexys Rail PS – 230VAC, 0 DI', ps:'90 to 270 VAC', di:0 },
+      { code:'FL-RL-DI04-PS-24V-CE-RoHS',   mrp:2914,  hsn:'85389000', desc:'Flexys Rail PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
+    ],
+    ioSlots: 4,
+    dlCable: 'AC-USB-RS485-03',
+  },
+}
+
+// Expansion module
+export const FLEXYS_EXP = {
+  code:'EXP FLEX 2M', mrp:3291, hsn:'85389000', desc:'Flexys Expansion Slot – 1 IO Card Slot',
+}
+
+// Accessory Set 1 — added per slave unit (EXP FLEX 2M or Set 2)
+export const FLEXYS_ACC_SET1 = [
+  { code:'RPS60-24-CE',       mrp:2450, hsn:'85044090', desc:'60W 24V SMPS – CE Certified' },
+  { code:'ACH-004-CE-RoHS',   mrp:579,  hsn:'85444299', desc:'Expansion Cable – RJ25 to RJ25 (6Pin)' },
+  { code:'AC-IOEXP-03-CE-RoHS',mrp:684, hsn:'85444299', desc:'Communication Adapter' },
+]
+
+// ACH-004 — extra expansion cable per Set 2 slave (in addition to Acc Set 1)
+export const FLEXYS_ACH004 = {
+  code:'ACH-004-CE-RoHS', mrp:579, hsn:'85444299', desc:'Expansion Cable – RJ25 to RJ25 (6Pin)',
+}
+
+// HMI comm cable
+export const FLEXYS_HMI_CABLE = {
+  code:'ACH-002-CE-RoHS', mrp:784, hsn:'85444299', desc:'Download/Comm Cable – 9 Pin D-Type to RJ25',
+}
+
+// Download cables
+export const FLEXYS_DL = {
+  single: { code:'AC-USB-RS485-03', mrp:4195, hsn:'84715000', desc:'Download Cable – USB to RS485 (RJ25)' },
+  multi:  { code:'AC-USB-RS485-02', mrp:4195, hsn:'84715000', desc:'Download Cable – USB to RS485 (2 wire)' },
+}
+
+// ── Case lookup table ─────────────────────────────────────────────────────────
+// slotsNeeded → { expFlex, set2Slaves, accSet1Count, needACH004, dlMulti }
+// expFlex = number of EXP FLEX 2M modules
+// set2Slaves = number of Set 2 slave units
+// accSet1Count = how many times Accessory Set 1 is added
+// needACH004 = boolean (extra ACH-004 per Set 2 slave, beyond what's in Acc Set 1)
+// dlMulti = use AC-USB-RS485-02 (multi) instead of -03 (single)
+
+export const FLEXYS_CASES = [
+  { minSlots:1,  maxSlots:4,  expFlex:0, set2Slaves:0, accSet1Count:0, needACH004:false, dlMulti:false },
+  { minSlots:5,  maxSlots:5,  expFlex:1, set2Slaves:0, accSet1Count:1, needACH004:false, dlMulti:false },
+  { minSlots:6,  maxSlots:6,  expFlex:2, set2Slaves:0, accSet1Count:1, needACH004:false, dlMulti:false },
+  { minSlots:7,  maxSlots:8,  expFlex:0, set2Slaves:1, accSet1Count:1, needACH004:true,  dlMulti:true  },
+  { minSlots:9,  maxSlots:9,  expFlex:1, set2Slaves:1, accSet1Count:1, needACH004:true,  dlMulti:true  },
+  { minSlots:10, maxSlots:10, expFlex:2, set2Slaves:1, accSet1Count:1, needACH004:true,  dlMulti:true  },
+  { minSlots:11, maxSlots:12, expFlex:0, set2Slaves:2, accSet1Count:2, needACH004:false, dlMulti:true  },
+  { minSlots:13, maxSlots:13, expFlex:1, set2Slaves:2, accSet1Count:3, needACH004:false, dlMulti:true  },
+  { minSlots:14, maxSlots:14, expFlex:2, set2Slaves:2, accSet1Count:3, needACH004:false, dlMulti:true  },
+]
+
+export const FLEXYS_MAX_SLOTS = 14

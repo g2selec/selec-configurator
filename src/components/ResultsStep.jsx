@@ -104,7 +104,11 @@ export default function ResultsStep({ result, io, sp, onBack, onCaptureLead }) {
 
       <SummaryStrip io={io} sp={sp} totalFound={shown.length} />
 
-      {warnings.map((w, i) => <Alert key={i} type="warn">⚠ {w}</Alert>)}
+      {warnings.map((w, i) => (
+        <Alert key={i} type={w.includes('contact Selec support') ? 'info' : 'warn'}>
+          {w.includes('contact Selec support') ? '📞 ' : '⚠ '}{w}
+        </Alert>
+      ))}
 
       {/* Filter bar */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-x-6 gap-y-3 items-center">
