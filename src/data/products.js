@@ -22,21 +22,21 @@
 
 export const BASES = {
   'MIBRX-2M-1-0-0-24VAC': {
-    mrp:2450, slots:2, di:3, diFI:3, diV:3, diFIV:null,
+    mrp:4753, slots:2, di:3, diFI:3, diV:3, diFIV:null,
     fi:0, ro:0, aiOnboard:null, ntc:false, rtc:false, eth:false,
     ps:'18 to 32 VAC', mnt:'Din Rail', size:'2M', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 2M Base – 24VAC, 2 Slots, 3DI'
   },
   'MIBRX-2M-1-0-0-24VDC': {
-    mrp:4412, slots:2, di:3, diFI:1, diV:3, diFIV:1,
+    mrp:4195, slots:2, di:3, diFI:1, diV:3, diFIV:1,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:false, rtc:false, eth:false,
     ps:'18 to 32 VDC', mnt:'Din Rail', size:'2M', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 2M Base – 24VDC, 2 Slots, 3DI (incl 1FI, 1AI-V)'
   },
   'MIBRX-4M-1-1-1-230V': {
-    mrp:2450, slots:4, di:5, diFI:3, diV:4, diFIV:2,
+    mrp:7326, slots:4, di:5, diFI:3, diV:4, diFIV:2,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Din Rail', size:'4M', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
@@ -50,14 +50,14 @@ export const BASES = {
     desc:'MiBRX 4M Base – 24VDC, 4 Slots, 5DI (incl 1FI, 1AI-V), NTC, RTC'
   },
   'MIBRX-4M-2-1-1-1-24VDC': {
-    mrp:2450, slots:4, di:2, diFI:2, diV:2, diFIV:2,
+    mrp:12020, slots:4, di:2, diFI:2, diV:2, diFIV:2,
     fi:0, ro:0, aiOnboard:null, ntc:false, rtc:true, eth:true,
     ps:'18 to 32 VDC', mnt:'Din Rail', size:'4M', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 4M Base – Isolated 24VDC, 4 Slots, 2DI, Ethernet+Modbus, RTC'
   },
   'MIBRX-6M-1-1-1-230V': {
-    mrp:2450, slots:6, di:11, diFI:9, diV:10, diFIV:8,
+    mrp:12590, slots:6, di:11, diFI:9, diV:10, diFIV:8,
     fi:1, ro:4, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Din Rail', size:'6M', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
@@ -71,7 +71,7 @@ export const BASES = {
     desc:'MiBRX 6M Base – Isolated 24VDC, 6 Slots, 8DI, Ethernet+Modbus, RTC'
   },
   'MIBRX-48-0-0-230V': {
-    mrp:2450, slots:2, di:6, diFI:4, diV:5, diFIV:3,
+    mrp:6034, slots:2, di:6, diFI:4, diV:5, diFIV:3,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:true, rtc:false, eth:false,
     ps:'90 to 270 VAC', mnt:'Panel', size:'48x96', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
@@ -85,7 +85,7 @@ export const BASES = {
     desc:'MiBRX 48×96 Base – 24VDC, 2 Slots, 7DI (incl 1FI, 2AI-V), 1AI-I, NTC'
   },
   'MIBRX-72-0-1-230V': {
-    mrp:2450, slots:2, di:4, diFI:4, diV:3, diFIV:1,
+    mrp:6815, slots:2, di:4, diFI:4, diV:3, diFIV:1,
     fi:0, ro:3, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Panel', size:'72x72', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
@@ -99,7 +99,7 @@ export const BASES = {
     desc:'MiBRX 72×72 Base – 24VDC, 2 Slots, 4DI + 4RO (incl 1FI, 1AI-V), 1AI-I, NTC, RTC'
   },
   'MIBRX-96-1-1-230V': {
-    mrp:2450, slots:6, di:4, diFI:2, diV:3, diFIV:1,
+    mrp:8291, slots:6, di:4, diFI:2, diV:3, diFIV:1,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Panel', size:'96x96', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
@@ -117,7 +117,7 @@ export const BASES = {
 // ─── DISPLAY MODULES ─────────────────────────────────────────────────────────
 // Keyed by size + display type for engine lookup
 export const DISPLAYS = {
-  '2M-Blind':       { code:'MIBRX-DSP-2M-0-1-06-A',    mrp:2450,   hsn:'85389000', desc:'MiBRX Display 2M – Blind, 6 LED',           dspType:'Blind' },
+  '2M-Blind':       { code:'MIBRX-DSP-2M-0-1-06-A',    mrp:594,   hsn:'85389000', desc:'MiBRX Display 2M – Blind, 6 LED',           dspType:'Blind' },
   '2M-7Seg':        { code:'MIBRX-DSP-2M-7-1-04-A',    mrp:966,   hsn:'85389000', desc:'MiBRX Display 2M – 7-Segment (4 digit)',     dspType:'7 Segment LED' },
   '4M-Blind':       { code:'MIBRX-DSP-4M-0-1-06-A',    mrp:839,   hsn:'85389000', desc:'MiBRX Display 4M – Blind, 6 LED',           dspType:'Blind' },
   '4M-LCD':         { code:'MIBRX-DSP-4M-8-2-08-A',    mrp:1979,  hsn:'85389000', desc:'MiBRX Display 4M – LCD Text (8×2)',          dspType:'LCD Text' },
@@ -212,7 +212,7 @@ export const FLEXYS = {
     logicCard:{ code:'FL-RL-LG-1-0-1-V2-CE-RoHS',  mrp:11708, hsn:'85371090', desc:'Flexys Rail – Logic Card, RTC, Modbus' },
     psOptions:[
       { code:'FL-RL-PS-230V',           mrp:2897, hsn:'85389000', desc:'Flexys Rail PS – 230VAC, 0 DI',  ps:'90 to 270 VAC', di:0 },
-      { code:'FL-RL-DI04-PS-24V-CE-RoHS',mrp:2450,hsn:'85389000', desc:'Flexys Rail PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
+      { code:'FL-RL-DI04-PS-24V-CE-RoHS',mrp:2914,hsn:'85389000', desc:'Flexys Rail PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
     ],
     maxSlots: 4,
     dlCable: 'AC-USB-RS485-03',
@@ -224,7 +224,7 @@ export const FLEXYS = {
     logicCard:{ code:'FL-GT35-LG-1-0-1-V2',        mrp:7987,  hsn:'85389000', desc:'Flexys Graphic – Logic Card, RTC, Modbus' },
     psOptions:[
       { code:'FL-GT35-DI04-PS-230V-CE-RoHS',mrp:4678,hsn:'85389000',desc:'Flexys Graphic PS – 230VAC, 4 DI', ps:'90 to 270 VAC', di:4 },
-      { code:'FL-GT35-DI04-PS-24V-CE-RoHS', mrp:2450,hsn:'85389000',desc:'Flexys Graphic PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
+      { code:'FL-GT35-DI04-PS-24V-CE-RoHS', mrp:5073,hsn:'85389000',desc:'Flexys Graphic PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
     ],
     maxSlots: 3,
     dlCable: 'AC-USB-RS485-03',
@@ -236,7 +236,7 @@ export const FLEXYS = {
     logicCard: null,
     psOptions:[
       { code:'FL-TX4-DI04-PS-230V-CE-RoHS',mrp:4220,hsn:'85389000',desc:'Flexys TX4 PS – 230VAC, 4 DI', ps:'90 to 270 VAC', di:4 },
-      { code:'FL-TX4-DI04-PS-24V-CE-RoHS', mrp:2450,hsn:'85389000',desc:'Flexys TX4 PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
+      { code:'FL-TX4-DI04-PS-24V-CE-RoHS', mrp:3908,hsn:'85389000',desc:'Flexys TX4 PS – 24VDC, 4 DI',  ps:'18 to 32 VDC',  di:4, smps:'RPS60-24-CE' },
     ],
     maxSlots: 4,
     dlCable: 'AC-USB-RS485-03',
