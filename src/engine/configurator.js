@@ -1,4 +1,5 @@
 import { BASES, HMI_OPTIONS, DISPLAYS, DISPLAY_OPTIONS, DSP_PREF_MAP, IOCARDS, COMBO_CARDS,
+         SLAVE_DISPLAYS,
          FLEXYS, FLEXYS_IOCARDS, FIXED_PLCS, ACC,
          IO_COMPAT, BASE_TO_MATRIX,
          FLEXYS_SETS, FLEXYS_EXP, FLEXYS_ACC_SET1, FLEXYS_ACH004,
@@ -499,6 +500,174 @@ function complexityScore(cfg) {
   return (cfg.unitCount || 1) * 10 + (cfg.cardCount || 0)
 }
 
+// ─── MiBRX MULTI-UNIT BUILDER ────────────────────────────────────────────────
+// Called only when no single base satisfies the requirement
+// Picks largest master + smallest slave(s) to cover remaining IO
+
+function buildMiBRXMultiUnit(req, dspPref) {
+  // All master bases sorted by slots descending (prefer largest master)
+  const masterBases = Object.keys(BASES)
+    .filter(code => BASES[code].master)
+    .sort((a, b) => BASES[b].slots - BASES[a].slots || BASES[a].mrp - BASES[b].mrp)
+
+  // All slave bases sorted by slots ascending (smallest slave first = fewer units)
+  const slaveBases = Object.keys(BASES)
+    .filter(code => BASES[code].slave)
+    .sort((a, b) => BASES[a].slots - BASES[b].slots || BASES[a].mrp - BASES[b].mrp)
+
+  const results = []
+
+  for (const masterCode of masterBases) {
+    const master = BASES[masterCode]
+
+    // Check compat for master
+    if (validateCardCompat(masterCode, req) !== null) continue
+
+    // Build master BOM (handles as much IO as possible)
+    const masterCfg = buildMiBRX(masterCode, req, dspPref, false)
+
+    // How much IO is still unmet after master?
+    // Master covers its on-board IO + slots worth of cards
+    // Remaining need = what overflows master slots
+    const masterSlotsFull = masterCfg.usedSlots <= master.slots
+    if (masterSlotsFull) continue // single unit works — skip (handled elsewhere)
+
+    // Calculate remaining IO after master is maxed out
+    const obDI  = resolveOnboardDI(master, req.fi, req.aiV)
+    const obRO  = master.ro
+    const obFI  = master.fi
+    const obAIV = resolveOnboardAI(master, 'V')
+    const obAII = resolveOnboardAI(master, 'I')
+
+    // Slots the master can fill
+    const masterAvail = master.slots
+    // We need to know which IO cards fill the master and what's left for slaves
+    // Simplified: calculate remaining after master handles what it can
+
+    const remReq = { ...req }
+    // Subtract on-board first
+    remReq.di    = Math.max(0, (req.di  || 0) - obDI)
+    remReq.ro    = Math.max(0, (req.ro  || 0) - obRO)
+    remReq.fi    = Math.max(0, (req.fi  || 0) - obFI)
+    remReq.aiV   = Math.max(0, (req.aiV || 0) - obAIV)
+    remReq.aiI   = Math.max(0, (req.aiI || 0) - obAII)
+    // Subtract what fits in master slots (6 ch DI cards, 4 ch RO cards etc.)
+    let masterSlotsUsed = 0
+    const subtractCards = (need, ch) => {
+      if (need <= 0 || masterSlotsUsed >= masterAvail) return need
+      const cardsNeeded = Math.ceil(need / ch)
+      const cardsFit    = Math.min(cardsNeeded, masterAvail - masterSlotsUsed)
+      masterSlotsUsed  += cardsFit
+      return Math.max(0, need - cardsFit * ch)
+    }
+    remReq.di    = subtractCards(remReq.di,    6)
+    remReq.ro    = subtractCards(remReq.ro,    4)
+    remReq.to    = subtractCards(remReq.to||0, 4)
+    remReq.fi    = subtractCards(remReq.fi,    2)
+    remReq.aiV   = subtractCards(remReq.aiV,   2)
+    remReq.aiI   = subtractCards(remReq.aiI,   2)
+    remReq.aiTC  = subtractCards(remReq.aiTC||0,2)
+    remReq.aiRTD = subtractCards(remReq.aiRTD||0,2)
+    remReq.aiPTC = subtractCards(remReq.aiPTC||0,2)
+    remReq.aiNTC = subtractCards(remReq.aiNTC||0,2)
+    remReq.aiLC  = subtractCards(remReq.aiLC||0,2)
+    remReq.aoV   = subtractCards(remReq.aoV||0,2)
+    remReq.aoI   = subtractCards(remReq.aoI||0,2)
+
+    const hasRemaining = Object.values(remReq).some(v => v > 0)
+    if (!hasRemaining) continue // master alone handles it — shouldn't happen here
+
+    // Find slave(s) to cover remaining IO
+    // Try single slave first, then two slaves
+    for (const slaveCode of slaveBases) {
+      if (slaveCode === masterCode) continue
+      const slave = BASES[slaveCode]
+
+      // Same PS family preferred
+      const masterPS = master.ps
+      if (!slave.ps.includes(masterPS.includes('VDC') ? 'VDC' : masterPS.includes('VAC') ? 'VAC' : '')) {
+        // Mismatched PS — skip for now (can relax later per BD input)
+        // continue  ← commented out so mixed PS is allowed
+      }
+
+      // Check if slave + compat can cover remaining
+      const slaveCompat = validateCardCompat(slaveCode, remReq)
+      if (slaveCompat !== null) continue
+
+      const slaveSlotsNeeded = slotsNeeded(slaveCode, remReq)
+      if (slaveSlotsNeeded <= slave.slots) {
+        // One slave is enough — build it
+        const slaveCfg = buildMiBRX(slaveCode, remReq, 'Any', false)
+
+        // Build slave display (adapter plate)
+        const slaveDsp = SLAVE_DISPLAYS[slave.size]
+
+        // Override slave plcItems to replace display with adapter plate
+        const slavePlcItems = slaveCfg.plcItems.map(item => {
+          // Replace display module with adapter plate
+          if (slaveDsp && Object.values(DISPLAYS).find(d => d.code === item.code)) {
+            return makeItem(slaveDsp.code, slaveDsp.desc, slaveDsp.hsn, slaveDsp.mrp, 1, 'PLC', 'Slave unit display')
+          }
+          return item
+        })
+
+        // Accessories: expansion cable if 2+ slaves (here 1 slave = direct wire)
+        const masterPlcItems = masterCfg.plcItems
+        const masterAccItems = masterCfg.accItems
+
+        // Combine
+        const allPlcItems = [...masterPlcItems, ...slavePlcItems]
+        const allAccItems = [...masterAccItems, ...slaveCfg.accItems]
+
+        // Add slave download cable to accessories
+        const slaveAccCode = slave.dlCable === 'AC-USB-RS485-02' ? 'AC-USB-RS485-02' : 'AC-USB-RS485-03'
+        const slaveAccDl   = ACC[slave.dlCable === 'AC-USB-RS485-02' ? 'dlMiBRX' : 'dlFlexys']
+        if (!allAccItems.find(i => i.code === slaveAccCode)) {
+          allAccItems.push(makeItem(slaveAccCode, slaveAccDl.desc, slaveAccDl.hsn, slaveAccDl.mrp, 1, 'Accessories', 'Slave programming cable'))
+        }
+
+        const plcTotal = allPlcItems.reduce((s, i) => s + i.total, 0)
+        const accTotal = allAccItems.reduce((s, i) => s + i.total, 0)
+        const total    = +(plcTotal + accTotal).toFixed(2)
+
+        results.push({
+          family:   'MiBRX Multi-Unit',
+          code:     masterCode,
+          baseCode: masterCode,
+          mnt:      master.mnt,
+          ps:       master.ps,
+          dsp:      dspPref,
+          plcItems: allPlcItems,
+          accItems: allAccItems,
+          plcTotal: +plcTotal.toFixed(2),
+          accTotal: +accTotal.toFixed(2),
+          total,
+          usedSlots:  masterSlotsUsed + slaveSlotsNeeded,
+          totalSlots: master.slots + slave.slots,
+          unitCount:  2,
+          cardCount:  masterSlotsUsed + slaveSlotsNeeded,
+          warnings:   [
+            `Multi-unit configuration: ${master.size} master + ${slave.size} slave. Direct RS485 wiring required.`,
+            ...(slaveCfg.warnings || []),
+          ],
+          pills: [
+            { t: `${master.size} Master`, c: 'blue' },
+            { t: `${slave.size} Slave`,   c: 'amber' },
+            { t: master.ps, c: 'gray' },
+            { t: master.mnt, c: 'gray' },
+            { t: '2 Units', c: 'amber' },
+          ],
+        })
+        break // found a working slave — don't try more for this master
+      }
+    }
+
+    if (results.length >= 3) break // enough candidates
+  }
+
+  return results
+}
+
 // ─── MAIN ENGINE ──────────────────────────────────────────────────────────────
 export function generateBuckets(req) {
   const candidates = [] // {tier, name, tagline, family, pills, ...cfg}
@@ -644,9 +813,18 @@ export function generateBuckets(req) {
     }
   }
 
+  // ── MiBRX Multi-Unit — triggered only when no single-unit MiBRX configs found ──
+  if (candidates.filter(c => c.family === 'MiBRX').length === 0) {
+    const multiConfigs = buildMiBRXMultiUnit(req, dspPref)
+    candidates.push(...multiConfigs)
+    if (multiConfigs.length > 0) {
+      warnings.push('No single-unit configuration found for this requirement. Showing multi-unit options.')
+    }
+  }
+
   if (candidates.length === 0) {
-    warnings.push('No configuration found for this requirement. Please review your inputs or contact Selec engineering.')
-    return { buckets: [], warnings }
+    warnings.push('No configuration found for this requirement. Please contact plc1@selec.com for support.')
+    return { allCandidates: [], warnings }
   }
 
   // ── Apply display preference filter ─────────────────────────────────────────

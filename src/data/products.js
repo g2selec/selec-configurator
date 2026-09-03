@@ -21,91 +21,91 @@
 //   size      = form factor label
 
 export const BASES = {
-  'MIBRX-2M-1-0-0-24VAC': {
+  'MIBRX-2M-1-0-0-24VAC': { master:false, slave:true, 
     mrp:4753, slots:2, di:3, diFI:3, diV:3, diFIV:null,
     fi:0, ro:0, aiOnboard:null, ntc:false, rtc:false, eth:false,
     ps:'18 to 32 VAC', mnt:'Din Rail', size:'2M', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 2M Base – 24VAC, 2 Slots, 3DI'
   },
-  'MIBRX-2M-1-0-0-24VDC': {
+  'MIBRX-2M-1-0-0-24VDC': { master:false, slave:true, 
     mrp:4195, slots:2, di:3, diFI:1, diV:3, diFIV:1,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:false, rtc:false, eth:false,
     ps:'18 to 32 VDC', mnt:'Din Rail', size:'2M', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 2M Base – 24VDC, 2 Slots, 3DI (incl 1FI, 1AI-V)'
   },
-  'MIBRX-4M-1-1-1-230V': {
+  'MIBRX-4M-1-1-1-230V': { master:true, slave:true, 
     mrp:7326, slots:4, di:5, diFI:3, diV:4, diFIV:2,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Din Rail', size:'4M', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 4M Base – 230VAC, 4 Slots, 5DI (incl 1FI, 1AI-V), NTC, RTC'
   },
-  'MIBRX-4M-1-1-1-24VDC': {
+  'MIBRX-4M-1-1-1-24VDC': { master:true, slave:true, 
     mrp:7990, slots:4, di:5, diFI:3, diV:4, diFIV:2,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'18 to 32 VDC', mnt:'Din Rail', size:'4M', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 4M Base – 24VDC, 4 Slots, 5DI (incl 1FI, 1AI-V), NTC, RTC'
   },
-  'MIBRX-4M-2-1-1-1-24VDC': {
+  'MIBRX-4M-2-1-1-1-24VDC': { master:true, slave:true, 
     mrp:12020, slots:4, di:2, diFI:2, diV:2, diFIV:2,
     fi:0, ro:0, aiOnboard:null, ntc:false, rtc:true, eth:true,
     ps:'18 to 32 VDC', mnt:'Din Rail', size:'4M', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 4M Base – Isolated 24VDC, 4 Slots, 2DI, Ethernet+Modbus, RTC'
   },
-  'MIBRX-6M-1-1-1-230V': {
+  'MIBRX-6M-1-1-1-230V': { master:true, slave:true, 
     mrp:12590, slots:6, di:11, diFI:9, diV:10, diFIV:8,
     fi:1, ro:4, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Din Rail', size:'6M', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 6M Base – 230VAC, 6 Slots, 11DI + 4RO (incl 1FI, 1AI-V), NTC, RTC'
   },
-  'MIBRX-6M-3-1-1-0-1-24VDC': {
+  'MIBRX-6M-3-1-1-0-1-24VDC': { master:true, slave:true, 
     mrp:19366, slots:6, di:8, diFI:6, diV:8, diFIV:8, // diFIV pending BD verification
     fi:1, ro:0, aiOnboard:null, ntc:false, rtc:true, eth:true,
     ps:'18 to 32 VDC', mnt:'Din Rail', size:'6M', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 6M Base – Isolated 24VDC, 6 Slots, 8DI, Ethernet+Modbus, RTC'
   },
-  'MIBRX-48-0-0-230V': {
+  'MIBRX-48-0-0-230V': { master:false, slave:true, 
     mrp:6034, slots:2, di:6, diFI:4, diV:5, diFIV:3,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:true, rtc:false, eth:false,
     ps:'90 to 270 VAC', mnt:'Panel', size:'48x96', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 48×96 Base – 230VAC, 2 Slots, 6DI (incl 1FI, 1AI-V), NTC'
   },
-  'MIBRX-48-0-0-24VDC': {
+  'MIBRX-48-0-0-24VDC': { master:false, slave:true, 
     mrp:6685, slots:2, di:7, diFI:5, diV:6, diFIV:4,
     fi:1, ro:0, aiOnboard:{type:'mixed',count:2, detail:{V:2,I:1}}, ntc:true, rtc:false, eth:false,
     ps:'18 to 32 VDC', mnt:'Panel', size:'48x96', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 48×96 Base – 24VDC, 2 Slots, 7DI (incl 1FI, 2AI-V), 1AI-I, NTC'
   },
-  'MIBRX-72-0-1-230V': {
+  'MIBRX-72-0-1-230V': { master:false, slave:true, 
     mrp:6815, slots:2, di:4, diFI:4, diV:3, diFIV:1,
     fi:0, ro:3, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Panel', size:'72x72', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 72×72 Base – 230VAC, 2 Slots, 4DI + 3RO (incl 1AI-V), NTC, RTC'
   },
-  'MIBRX-72-0-1-24VDC': {
+  'MIBRX-72-0-1-24VDC': { master:false, slave:true, 
     mrp:9026, slots:2, di:4, diFI:2, diV:3, diFIV:1,
     fi:1, ro:4, aiOnboard:{type:'mixed',count:2, detail:{V:1,I:1}}, ntc:true, rtc:true, eth:false,
     ps:'18 to 32 VDC', mnt:'Panel', size:'72x72', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 72×72 Base – 24VDC, 2 Slots, 4DI + 4RO (incl 1FI, 1AI-V), 1AI-I, NTC, RTC'
   },
-  'MIBRX-96-1-1-230V': {
+  'MIBRX-96-1-1-230V': { master:true, slave:true, 
     mrp:8291, slots:6, di:4, diFI:2, diV:3, diFIV:1,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:true, rtc:true, eth:false,
     ps:'90 to 270 VAC', mnt:'Panel', size:'96x96', hsn:'85371090',
     smps:null, dlCable:'AC-USB-RS485-02',
     desc:'MiBRX 96×96 Base – 230VAC, 6 Slots, 4DI (incl 1FI, 1AI-V), NTC, RTC'
   },
-  'MIBRX-96-1-1-24VDC': {
+  'MIBRX-96-1-1-24VDC': { master:true, slave:true, 
     mrp:9474, slots:6, di:6, diFI:4, diV:5, diFIV:3,
     fi:1, ro:0, aiOnboard:{type:'mixed',count:2, detail:{V:1,I:1}}, ntc:true, rtc:true, eth:false,
     ps:'18 to 32 VDC', mnt:'Panel', size:'96x96', hsn:'85371090',
@@ -608,3 +608,14 @@ export const FLEXYS_CASES = [
 ]
 
 export const FLEXYS_MAX_SLOTS = 14
+
+// ─── SLAVE DISPLAY (ADAPTER PLATES) ─────────────────────────────────────────
+// Slaves use adapter plates instead of display modules
+export const SLAVE_DISPLAYS = {
+  '2M':    { code:'MIBRX-DSP-2M-0-1-06-A',  mrp:594,  hsn:'85389000', desc:'MiBRX Display 2M – Blind (Slave)' },
+  '4M':    { code:'MIBRX-DSP-4M-0-1-06-A',  mrp:839,  hsn:'85389000', desc:'MiBRX Display 4M – Blind (Slave)' },
+  '6M':    { code:'MIBRX-DSP-AP-6M',         mrp:960,  hsn:'85389000', desc:'MiBRX 6M Adapter Plate (Slave)' },
+  '48x96': { code:'MIBRX-DSP-48-7-2-11-A',  mrp:2250, hsn:'85389000', desc:'MiBRX Display 48×96 (Slave)' },
+  '72x72': { code:'MIBRX-DSP-72-7-2-10-B',  mrp:2016, hsn:'85389000', desc:'MiBRX Display 72×72 (Slave)' },
+  '96x96': { code:'MIBRX-DSP-96-8-2-16-B',  mrp:2589, hsn:'85389000', desc:'MiBRX Display 96×96 (Slave)' },
+}
