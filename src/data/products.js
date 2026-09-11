@@ -29,7 +29,7 @@ export const BASES = {
     desc:'MiBRX 2M Base – 24VAC, 2 Slots, 3DI'
   },
   'MIBRX-2M-1-0-0-24VDC': { master:false, slave:true, 
-    mrp:4195, slots:2, di:3, diFI:1, diV:3, diFIV:1,
+    mrp:4412, slots:2, di:3, diFI:1, diV:3, diFIV:1,
     fi:1, ro:0, aiOnboard:{type:'V',count:1}, ntc:false, rtc:false, eth:false,
     ps:'18 to 32 VDC', mnt:'Din Rail', size:'2M', hsn:'85371090',
     smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-02',
@@ -313,7 +313,7 @@ export const FIXED_PLCS = [
     desc:'8DI · 6DO · 1AI (TC/RTD) · 24VDC'
   },
   {
-    code:'MM3032-2-0-0-230V V2', mrp:2450, series:'MM303X', ps:'90 to 270 VAC',
+    code:'MM3032-2-0-0-230V V2', mrp:15226, series:'MM303X', ps:'90 to 270 VAC',
     di:8, ro:6, to:0, fi:1, diFI:6, aiOnboard:{type:'mixed',count:2}, aiV:2, aiI:2, aiTC:0, aiRTD:0, aiPTC:0, aiNTC:0, aiLC:0, aoV:1, aoI:0,
     eth:false, smps:null, dlCable:'AC-USB-RS485-03', hsn:'85371090',
     desc:'8DI · 6RO · 2AI (V/I) · 1AO · 230VAC'
@@ -325,7 +325,7 @@ export const FIXED_PLCS = [
     desc:'8DI · 6RO · 1AI (V/I) · NTC · 24VDC'
   },
   {
-    code:'MM3030-4-V2', mrp:2450, series:'MM303X', ps:'18 to 32 VDC',
+    code:'MM3030-4-V2', mrp:23366, series:'MM303X', ps:'18 to 32 VDC',
     di:10, ro:0, to:8, fi:2, diFI:6, aiOnboard:{type:'mixed',count:2}, aiV:2, aiI:2, aiTC:0, aiRTD:0, aiPTC:0, aiNTC:0, aiLC:0, aoV:0, aoI:0,
     eth:true, smps:'RPS60-24-CE', dlCable:'AC-USB-RS485-03', hsn:'85371090',
     desc:'10DI · 8DO · 2AI (V/I) · Ethernet · 24VDC'
