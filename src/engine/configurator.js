@@ -282,16 +282,16 @@ function buildMiBRX(baseCode, req, dspPref, useIsolated = false) {
     warnings.push(`Requires ${usedSlots} IO card slots — base has ${base.slots}. Consider a larger base.`)
 
   // ── Accessories (mandatory, separate section) ─────────────────────────────
-  if (base.smps) addACC(base.smps, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Required for 24VDC supply')
+  if (base.smps) addACC(base.smps, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, '')
 
   // Download cable (from base spec)
   const dlAcc = ACC[base.dlCable === 'AC-USB-RS485-02' ? 'dlMiBRX' : 'dlFlexys']
-  addACC(base.dlCable, dlAcc.desc, dlAcc.hsn, dlAcc.mrp, 1, 'Programming cable')
+  addACC(base.dlCable, dlAcc.desc, dlAcc.hsn, dlAcc.mrp, 1, '')
 
   // Expansion cable only needed for multi-unit (master+slave) — not added here
 
   // HMI communication cable
-  if (req.hmi) addACC(ACC.commCable.code, ACC.commCable.desc, ACC.commCable.hsn, ACC.commCable.mrp, 1, 'For HMI connection')
+  if (req.hmi) addACC(ACC.commCable.code, ACC.commCable.desc, ACC.commCable.hsn, ACC.commCable.mrp, 1, '')
 
   const plcTotal = plcItems.reduce((s, i) => s + i.total, 0)
   const accTotal = accItems.reduce((s, i) => s + i.total, 0)
@@ -441,30 +441,36 @@ function buildFlexysConfig(mainSet, req, selectedPs, hmiOption) {
   }
 
   // ── Accessories ───────────────────────────────────────────────────────────
-  // SMPS for main if 24VDC
-  if (ps.smps) addACC(ACC.smps.code, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Main unit SMPS')
+  // SMPS for main unit if 24VDC PS card selected
+  if (ps.smps) addACC(ACC.smps.code, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, '')
 
-  // Accessory Set 1 × accSet1Count (RPS60 + ACH-004 + AC-IOEXP-03)
+  // Accessory Set 1 items (ACH-004 + AC-IOEXP-03) × accSet1Count
+  // RPS60 is handled per-unit above (main) and below (slaves) — skip it here to avoid duplication
   if (caseRow.accSet1Count > 0) {
-    FLEXYS_ACC_SET1.forEach(a => {
-      addACC(a.code, a.desc, a.hsn, a.mrp, caseRow.accSet1Count, 'Accessory Set 1')
+    FLEXYS_ACC_SET1.filter(a => a.code !== ACC.smps.code).forEach(a => {
+      addACC(a.code, a.desc, a.hsn, a.mrp, caseRow.accSet1Count, '')
     })
+  }
+
+  // SMPS for each Set-2 slave unit (separate PLC, needs its own 24VDC supply)
+  if (caseRow.set2Slaves > 0 && ps.smps) {
+    addACC(ACC.smps.code, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, caseRow.set2Slaves, '')
   }
 
   // Extra ACH-004 per Set 2 slave (beyond what's in Acc Set 1)
   if (caseRow.needACH004 && caseRow.set2Slaves > 0) {
     addACC(FLEXYS_ACH004.code, FLEXYS_ACH004.desc, FLEXYS_ACH004.hsn, FLEXYS_ACH004.mrp,
-      caseRow.set2Slaves, 'Inter-unit expansion cable')
+      caseRow.set2Slaves, '')
   }
 
   // HMI cable
   if (hmiOption) {
-    addACC(FLEXYS_HMI_CABLE.code, FLEXYS_HMI_CABLE.desc, FLEXYS_HMI_CABLE.hsn, FLEXYS_HMI_CABLE.mrp, 1, 'HMI communication cable')
+    addACC(FLEXYS_HMI_CABLE.code, FLEXYS_HMI_CABLE.desc, FLEXYS_HMI_CABLE.hsn, FLEXYS_HMI_CABLE.mrp, 1, '')
   }
 
   // Download cable
   const dlCable = caseRow.dlMulti ? FLEXYS_DL.multi : FLEXYS_DL.single
-  addACC(dlCable.code, dlCable.desc, dlCable.hsn, dlCable.mrp, 1, 'Programming cable')
+  addACC(dlCable.code, dlCable.desc, dlCable.hsn, dlCable.mrp, 1, '')
 
   const plcTotal = plcItems.reduce((s, i) => s + i.total, 0)
   const accTotal = accItems.reduce((s, i) => s + i.total, 0)
@@ -682,8 +688,8 @@ export function generateBuckets(req) {
   for (const plc of fixedMatches.slice(0, 2)) {
     const plcItems = [makeItem(plc.code, `${plc.series} – ${plc.desc}`, plc.hsn, plc.mrp, 1, 'PLC')]
     const accItems = []
-    if (plc.smps) accItems.push(makeItem(plc.smps, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Accessories', 'Required for 24VDC'))
-    accItems.push(makeItem(plc.dlCable, ACC.dlFlexys.desc, ACC.dlFlexys.hsn, ACC.dlFlexys.mrp, 1, 'Accessories', 'Programming cable'))
+    if (plc.smps) accItems.push(makeItem(plc.smps, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Accessories', ''))
+    accItems.push(makeItem(plc.dlCable, ACC.dlFlexys.desc, ACC.dlFlexys.hsn, ACC.dlFlexys.mrp, 1, 'Accessories', ''))
     const plcTotal = plcItems.reduce((s, i) => s + i.total, 0)
     const accTotal = accItems.reduce((s, i) => s + i.total, 0)
     candidates.push({

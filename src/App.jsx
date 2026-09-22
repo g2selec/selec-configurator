@@ -53,7 +53,7 @@ export default function App() {
         <div className="ml-auto text-white/20 text-[11px]">MRP FY 2026-27</div>
       </header>
 
-      <StepBar step={step} />
+      <StepBar step={step} onStepClick={setStep} />
 
       <main className="max-w-3xl mx-auto px-4 py-6">
         {step === 0 && (
