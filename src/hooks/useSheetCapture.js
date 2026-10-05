@@ -15,22 +15,29 @@ export function useSheetCapture(sessionId) {
       buckets: buckets.map(b => ({ name:b.name, total:b.total, tier:b.tier }))
     }, sessionId)
 
-  const captureLead = ({ name, email, company, phone }, io, sp, selectedBucket) =>
-    post({
+  const captureLead = ({ name, email, company, phone }, io, sp, selectedBucket, currencyCtx) => {
+    const currency = currencyCtx?.currency ?? 'INR'
+    const rate     = currencyCtx?.rate     ?? 1
+    const convert  = (inr) => currency === 'INR' ? inr : +(inr * rate).toFixed(2)
+
+    return post({
       type: 'lead', name, email, company, phone, io, sp,
+      currency,
+      exchangeRate: rate,
       selectedBucket: {
         name:     selectedBucket.name,
         tier:     selectedBucket.tier,
         code:     selectedBucket.code || selectedBucket.baseCode,
-        plcTotal: selectedBucket.plcTotal,
-        accTotal: selectedBucket.accTotal,
-        total:    selectedBucket.total,
+        plcTotal: convert(selectedBucket.plcTotal),
+        accTotal: convert(selectedBucket.accTotal),
+        total:    convert(selectedBucket.total),
         items:    [
           ...(selectedBucket.plcItems || []),
           ...(selectedBucket.accItems || []),
-        ],
+        ].map(item => ({ ...item, mrp: convert(item.mrp), total: convert(item.total) })),
       },
     }, sessionId)
+  }
 
   return { captureRequirement, captureLead }
 }

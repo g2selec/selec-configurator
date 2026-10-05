@@ -516,9 +516,9 @@ function buildMiBRXMultiUnit(req, dspPref) {
     .filter(code => BASES[code].master)
     .sort((a, b) => BASES[b].slots - BASES[a].slots || BASES[a].mrp - BASES[b].mrp)
 
-  // All slave bases sorted by slots ascending (smallest slave first = fewer units)
+  // All slave bases sorted by slots ascending — slaves must always be Din Rail
   const slaveBases = Object.keys(BASES)
-    .filter(code => BASES[code].slave)
+    .filter(code => BASES[code].slave && BASES[code].mnt === 'Din Rail')
     .sort((a, b) => BASES[a].slots - BASES[b].slots || BASES[a].mrp - BASES[b].mrp)
 
   const results = []
@@ -621,16 +621,12 @@ function buildMiBRXMultiUnit(req, dspPref) {
         const masterPlcItems = masterCfg.plcItems
         const masterAccItems = masterCfg.accItems
 
-        // Combine
+        // Combine — remove slave's own download cable (one cable total per config)
+        const slaveCfgAccNoCable = slaveCfg.accItems.filter(i =>
+          i.code !== 'AC-USB-RS485-02' && i.code !== 'AC-USB-RS485-03'
+        )
         const allPlcItems = [...masterPlcItems, ...slavePlcItems]
-        const allAccItems = [...masterAccItems, ...slaveCfg.accItems]
-
-        // Add slave download cable to accessories
-        const slaveAccCode = slave.dlCable === 'AC-USB-RS485-02' ? 'AC-USB-RS485-02' : 'AC-USB-RS485-03'
-        const slaveAccDl   = ACC[slave.dlCable === 'AC-USB-RS485-02' ? 'dlMiBRX' : 'dlFlexys']
-        if (!allAccItems.find(i => i.code === slaveAccCode)) {
-          allAccItems.push(makeItem(slaveAccCode, slaveAccDl.desc, slaveAccDl.hsn, slaveAccDl.mrp, 1, 'Accessories', 'Slave programming cable'))
-        }
+        const allAccItems = [...masterAccItems, ...slaveCfgAccNoCable]
 
         const plcTotal = allPlcItems.reduce((s, i) => s + i.total, 0)
         const accTotal = allAccItems.reduce((s, i) => s + i.total, 0)

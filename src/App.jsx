@@ -6,6 +6,7 @@ import SpecialStep from './components/SpecialStep'
 import ResultsStep from './components/ResultsStep'
 import { generateBuckets } from './engine/configurator'
 import { useSheetCapture }  from './hooks/useSheetCapture'
+import { useCurrency }      from './hooks/useCurrency'
 
 const SESSION_ID = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
 
@@ -23,6 +24,7 @@ export default function App() {
   const [result, setResult] = useState(null)
 
   const { captureRequirement, captureLead } = useSheetCapture(SESSION_ID)
+  const currencyCtx = useCurrency()
 
   const handleGenerate = () => {
     const res = generateBuckets({ ...io, ...sp })
@@ -32,7 +34,7 @@ export default function App() {
   }
 
   const handleCaptureLead = async (leadData, selectedBucket) => {
-    await captureLead(leadData, io, sp, selectedBucket)
+    await captureLead(leadData, io, sp, selectedBucket, currencyCtx)
   }
 
   return (
@@ -72,6 +74,7 @@ export default function App() {
             io={io} sp={sp}
             onBack={() => setStep(1)}
             onCaptureLead={handleCaptureLead}
+            currencyCtx={currencyCtx}
           />
         )}
       </main>

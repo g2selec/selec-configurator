@@ -4,7 +4,8 @@ import BucketCard from './BucketCard'
 import LeadModal from './LeadModal'
 import { HMI_OPTIONS } from '../data/products'
 
-const inr = n => { const num = Number(n); return '₹' + (Number.isInteger(num) ? num.toLocaleString('en-IN') : num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) }
+// inr() is replaced by currencyCtx.fmt() passed as prop — kept for HMI section fallback
+const inrFallback = n => '₹' + Math.round(Number(n)).toLocaleString('en-IN')
 
 // ─── FILTER CHIP ─────────────────────────────────────────────────────────────
 function FilterChip({ label, active, onClick }) {
@@ -40,7 +41,7 @@ function SummaryStrip({ io, sp, totalFound }) {
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function ResultsStep({ result, io, sp, onBack, onCaptureLead }) {
+export default function ResultsStep({ result, io, sp, onBack, onCaptureLead, currencyCtx }) {
   const { allCandidates = [], warnings = [] } = result
 
   const [filterMnt, setFilterMnt] = useState('All')
@@ -153,7 +154,7 @@ export default function ResultsStep({ result, io, sp, onBack, onCaptureLead }) {
             Try removing one filter — <strong>{allCandidates.length}</strong> valid options exist without filters.
           </Alert>
         : shown.map(b => (
-            <BucketCard key={b.rank} bucket={b} onSelectForEmail={handleSelectForEmail} />
+            <BucketCard key={b.rank} bucket={b} onSelectForEmail={handleSelectForEmail} currencyCtx={currencyCtx} />
           ))
       }
 
@@ -176,13 +177,13 @@ export default function ResultsStep({ result, io, sp, onBack, onCaptureLead }) {
               >
                 <div className="text-[11px] font-bold text-navy">{h.code}</div>
                 <div className="text-[11px] text-gray-400 mt-0.5">{h.desc}</div>
-                <div className="text-[13px] font-bold text-selgreen mt-1.5">{inr(h.mrp)}</div>
+                <div className="text-[13px] font-bold text-selgreen mt-1.5">{(currencyCtx?.fmt ?? inrFallback)(h.mrp)}</div>
               </button>
             ))}
           </div>
           {selectedHMI && (
             <div className="mt-3 text-[12px] text-blue-700 bg-blue-50 rounded-lg px-4 py-2.5 border border-blue-100">
-              Selected HMI adds <strong>{inr(selectedHMI.mrp)}</strong> + ACH-001 cable (₹861) to any configuration.
+              Selected HMI adds <strong>{(currencyCtx?.fmt ?? inrFallback)(selectedHMI.mrp)}</strong> + ACH-001 cable to any configuration.
             </div>
           )}
         </div>

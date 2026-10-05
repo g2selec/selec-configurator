@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { Pill, SlotBar, Alert } from './ui'
 import { getProductImage } from '../data/productImages'
 
-const inr = n => { const num = Number(n); return '₹' + (Number.isInteger(num) ? num.toLocaleString('en-IN') : num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) }
-
 const TIER_STYLE = {
   'Economical · Simple':     { color: '#1a8c5b', bg: 'bg-green-50',  text: 'text-green-700' },
   'Economical · Scalable':   { color: '#2563eb', bg: 'bg-blue-50',   text: 'text-blue-700'  },
@@ -20,12 +18,12 @@ function ProductThumb({ code }) {
   )
 }
 
-function BOMSection({ title, items, subtotal }) {
+function BOMSection({ title, items, subtotal, fmt }) {
   return (
     <div className="mb-4">
       <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 border-b border-gray-100 pb-1.5 mb-2 flex justify-between">
         <span>{title}</span>
-        <span className="text-gray-500">{inr(subtotal)}</span>
+        <span className="text-gray-500">{fmt(subtotal)}</span>
       </div>
       {items.map((r, i) => (
         <div key={i} className="flex items-start gap-2 py-2 border-b border-gray-50 last:border-0">
@@ -39,16 +37,17 @@ function BOMSection({ title, items, subtotal }) {
             {r.note && <div className="text-[10px] text-gray-400 mt-0.5">{r.note}</div>}
           </div>
           <div className="text-[11px] text-gray-400 w-5 text-center flex-shrink-0">×{r.qty}</div>
-          <div className="text-[12px] font-semibold text-navy w-20 text-right flex-shrink-0">{inr(r.total)}</div>
+          <div className="text-[12px] font-semibold text-navy w-20 text-right flex-shrink-0">{fmt(r.total)}</div>
         </div>
       ))}
     </div>
   )
 }
 
-export default function BucketCard({ bucket, onSelectForEmail }) {
+export default function BucketCard({ bucket, onSelectForEmail, currencyCtx }) {
   const [open, setOpen] = useState(false)
   const style = TIER_STYLE[bucket.tier] || TIER_STYLE['Economical · Simple']
+  const fmt = currencyCtx?.fmt ?? (n => '₹' + Math.round(n).toLocaleString('en-IN'))
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm transition-all hover:border-gray-200">
@@ -67,7 +66,7 @@ export default function BucketCard({ bucket, onSelectForEmail }) {
           <p className="text-[12px] text-gray-400 mt-1">{bucket.tagline}</p>
         </div>
         <div className="flex-shrink-0 text-right ml-2">
-          <div className="text-[19px] font-black text-navy tracking-tighter leading-none">{inr(bucket.total)}</div>
+          <div className="text-[19px] font-black text-navy tracking-tighter leading-none">{fmt(bucket.total)}</div>
           <div className="text-[10px] text-gray-400 mt-1">Indicative MRP</div>
           <div className="text-[11px] text-gray-400 mt-2">{open ? '▲ Hide' : '▼ Details'}</div>
         </div>
@@ -106,17 +105,17 @@ export default function BucketCard({ bucket, onSelectForEmail }) {
                 <div className="text-[10px] text-gray-400 uppercase tracking-wide">Accessories</div>
               </div>
               <div className="bg-white rounded-lg px-3 py-2 border border-gray-100 text-center">
-                <div className="text-[15px] font-bold text-selgreen">{inr(bucket.plcTotal || 0)}</div>
+                <div className="text-[15px] font-bold text-selgreen">{fmt(bucket.plcTotal || 0)}</div>
                 <div className="text-[10px] text-gray-400 uppercase tracking-wide">PLC Total</div>
               </div>
               <div className="bg-white rounded-lg px-3 py-2 border border-gray-100 text-center">
-                <div className="text-[15px] font-bold text-selgreen">{inr(bucket.accTotal || 0)}</div>
+                <div className="text-[15px] font-bold text-selgreen">{fmt(bucket.accTotal || 0)}</div>
                 <div className="text-[10px] text-gray-400 uppercase tracking-wide">Accessories</div>
               </div>
             </div>
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
               <div className="text-[13px] font-bold text-navy">Grand Total (excl. GST)</div>
-              <div className="text-[16px] font-black text-navy">{inr(bucket.total)}</div>
+              <div className="text-[16px] font-black text-navy">{fmt(bucket.total)}</div>
             </div>
             <div className="text-[11px] text-gray-400 mt-1 text-right">+ GST as Applicable</div>
           </div>
