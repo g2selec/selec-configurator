@@ -1,4 +1,4 @@
-import { BASES, HMI_OPTIONS, DISPLAYS, DISPLAY_OPTIONS, DSP_PREF_MAP, IOCARDS, COMBO_CARDS,
+import { BASES, HMI_OPTIONS, HMI_ADAPTER_PLATES, DISPLAYS, DISPLAY_OPTIONS, DSP_PREF_MAP, IOCARDS, COMBO_CARDS,
          SLAVE_DISPLAYS,
          FLEXYS, FLEXYS_IOCARDS, FIXED_PLCS, ACC,
          IO_COMPAT, BASE_TO_MATRIX,
@@ -290,8 +290,7 @@ function buildMiBRX(baseCode, req, dspPref, useIsolated = false) {
 
   // Expansion cable only needed for multi-unit (master+slave) — not added here
 
-  // HMI communication cable
-  if (req.hmi) addACC(ACC.commCable.code, ACC.commCable.desc, ACC.commCable.hsn, ACC.commCable.mrp, 1, '')
+  // HMI cable + adapter plate are added externally per HMI option — not here
 
   const plcTotal = plcItems.reduce((s, i) => s + i.total, 0)
   const accTotal = accItems.reduce((s, i) => s + i.total, 0)
@@ -305,6 +304,51 @@ function buildMiBRX(baseCode, req, dspPref, useIsolated = false) {
     usedSlots, totalSlots: base.slots, warnings,
     series: 'MiBRX', baseCode, mnt: base.mnt, ps: base.ps, dsp: dspPref,
     unitCount, cardCount: usedSlots
+  }
+}
+
+// ─── MIBRX + HMI BUILDER ─────────────────────────────────────────────────────
+// Builds a MiBRX config and appends the chosen HMI panel + adapter plate + cables
+// Only valid for Din Rail MiBRX bases (2M / 4M / 6M)
+function buildMiBRXWithHMI(baseCode, req, dspPref, hmiOption) {
+  const base = BASES[baseCode]
+  if (!base || base.mnt !== 'Din Rail') return null
+
+  const cfg = buildMiBRX(baseCode, req, dspPref, false)
+  if (!cfg) return null
+
+  const plate = HMI_ADAPTER_PLATES[base.size]
+  if (!plate) return null  // no adapter plate for this base size
+
+  // Clone accItems and add HMI-specific accessories
+  const accItems = [...cfg.accItems]
+
+  // 1. Adapter plate (replaces the standard display — goes in PLC section as it's a mounting accessory)
+  const plcItems = [...cfg.plcItems,
+    makeItem(plate.code, plate.desc, plate.hsn, plate.mrp, 1, 'PLC')
+  ]
+
+  // 2. HMI panel itself (PLC section)
+  plcItems.push(makeItem(hmiOption.code, hmiOption.desc, '85371090', hmiOption.mrp, 1, 'PLC'))
+
+  // 3. HMI SMPS (always needed — HMI is 24VDC Panel Mount)
+  accItems.push(makeItem(ACC.smps.code, ACC.smps.desc, ACC.smps.hsn, ACC.smps.mrp, 1, 'Accessories'))
+
+  // 4. HMI communication cable (ACH-002)
+  accItems.push(makeItem(ACC.hmiCable.code, ACC.hmiCable.desc, ACC.hmiCable.hsn, ACC.hmiCable.mrp, 1, 'Accessories'))
+
+  const plcTotal = plcItems.reduce((s, i) => s + i.total, 0)
+  const accTotal = accItems.reduce((s, i) => s + i.total, 0)
+
+  return {
+    ...cfg,
+    plcItems,
+    accItems,
+    plcTotal: +plcTotal.toFixed(2),
+    accTotal: +accTotal.toFixed(2),
+    total:    +(plcTotal + accTotal).toFixed(2),
+    hmiCode:  hmiOption.code,
+    hmiSize:  hmiOption.size,
   }
 }
 
@@ -492,7 +536,7 @@ function buildFlexysConfig(mainSet, req, selectedPs, hmiOption) {
     baseCode: setDef.base.code,
     mnt: mainSet === 'set1' ? 'Panel' : 'Din Rail',
     ps: selectedPs || 'Any',
-    dsp: hmiOption ? '3.5 Inch HMI' : 'Any',
+    dsp: hmiOption ? '3.5" Touch' : 'Any',
     unitCount,
     cardCount,
     caseIndex: FLEXYS_CASES.indexOf(caseRow) + 1,
@@ -793,22 +837,40 @@ export function generateBuckets(req) {
       }
     }
 
-    // Flexys Rail with HMI (if user requested HMI)
-    if (req.hmi) {
-      const hmiOpt = HMI_OPTIONS[1] // default 4.3" CE
-      const cfg = buildFlexysConfig('set2', req, req.ps && req.ps !== 'Any' ? req.ps : '18 to 32 VDC', hmiOpt)
-      if (cfg && !cfg.tooLarge) {
+  }
+
+  // ── MiBRX + HMI — one candidate per HMI option ───────────────────────────
+  // HMI panels mount to MiBRX Din Rail bases via adapter plates (AP-2M/4M/6M)
+  if (req.hmi) {
+    const hmiBaseCodes = Object.keys(BASES).filter(code => {
+      const b = BASES[code]
+      if (b.mnt !== 'Din Rail') return false
+      if (!HMI_ADAPTER_PLATES[b.size]) return false
+      if (req.eth && !b.eth) return false
+      if (slotsNeeded(code, req) > b.slots) return false
+      const compatError = validateCardCompat(code, req)
+      if (compatError) return false
+      return true
+    })
+
+    for (const baseCode of hmiBaseCodes) {
+      const b = BASES[baseCode]
+      for (const hmiOpt of HMI_OPTIONS) {
+        const cfg = buildMiBRXWithHMI(baseCode, req, dspPref, hmiOpt)
+        if (!cfg) continue
         candidates.push({
-          family: 'Flexys Rail + HMI',
-          code:   FLEXYS_SETS.set2.base.code + '-HMI',
-          mnt:    'Din Rail',
-          ps:     cfg.ps,
+          family: `MiBRX + HMI`,
+          code:   `${baseCode}-HMI-${hmiOpt.code}`,
+          baseCode,
+          mnt:    b.mnt,
+          ps:     b.ps,
           ...cfg,
           pills: [
-            { t: 'Flexys Rail', c: 'purple' },
-            { t: 'HMI Panel', c: 'blue' },
-            { t: `${cfg.usedSlots}/${cfg.totalSlots} Slots`, c: 'blue' },
-            ...(cfg.unitCount > 1 ? [{ t: `${cfg.unitCount} Units`, c: 'amber' }] : []),
+            { t: `${hmiOpt.size} HMI`, c: 'blue' },
+            { t: `${cfg.usedSlots}/${b.slots} Slots`, c: cfg.usedSlots > b.slots ? 'amber' : 'green' },
+            { t: b.ps, c: 'gray' },
+            { t: b.mnt, c: 'gray' },
+            ...(hmiOpt.eth ? [{ t: 'ETH on HMI', c: 'blue' }] : []),
           ]
         })
       }
@@ -837,7 +899,7 @@ export function generateBuckets(req) {
         // Fixed PLCs have no display — always include them
         if (c.cardCount === 0 && c.unitCount === 1 && !c.totalSlots) return true
         // Flexys Graphic has built-in 3.5" touch display
-        if (c.family === 'Flexys Graphic') return dspPref === '3.5 Inch HMI' || dspPref === 'Any'
+        if (c.family === 'Flexys Graphic') return dspPref === '3.5" Touch' || dspPref === 'Any'
         // MiBRX — check if any display option for this base supports the preference
         if (!c.baseCode) return true
         const base = BASES[c.baseCode.replace('-ISO','')]

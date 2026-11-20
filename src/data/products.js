@@ -128,7 +128,7 @@ export const DISPLAYS = {
   '72x72-LCD':      { code:'MIBRX-DSP-72-8-2-08-B',    mrp:2195,  hsn:'85389000', desc:'MiBRX Display 72×72 – LCD Text (8×2)',      dspType:'LCD Text' },
   '96x96-LCD16x4':  { code:'MIBRX-DSP-96-8-4-16-B',    mrp:3924,  hsn:'85389000', desc:'MiBRX Display 96×96 – LCD Text (16×4)',     dspType:'LCD Text' },
   '96x96-LCD16x2':  { code:'MIBRX-DSP-96-8-2-16-B',    mrp:2589,  hsn:'85389000', desc:'MiBRX Display 96×96 – LCD Text (16×2)',     dspType:'LCD Text' },
-  '96x96-Graphic':  { code:'MIBRX-DSP-IND-96-8-0-00-C',mrp:11815, hsn:'85389000', desc:'MiBRX Independent Display 96×96 – 3.5" Touch',dspType:'3.5 Inch HMI' },
+  '96x96-Graphic':  { code:'MIBRX-DSP-IND-96-8-0-00-C',mrp:11815, hsn:'85389000', desc:'MiBRX Independent Display 96×96 – 3.5" Touch',dspType:'3.5" Touch' },
 }
 
 // Display options per base size — ordered by preference (LCD > 7Seg > Blind)
@@ -146,8 +146,8 @@ export const DSP_PREF_MAP = {
   'Blind':         ['Blind'],
   '7 Segment LED': ['7 Segment LED'],
   'LCD Text':      ['LCD Text'],
-  '3.5 Inch HMI':  ['3.5 Inch HMI'],
-  'Any':           ['LCD Text', '7 Segment LED', 'Blind', '3.5 Inch HMI'],
+  '3.5" Touch':    ['3.5" Touch'],
+  'Any':           ['LCD Text', '7 Segment LED', 'Blind', '3.5" Touch'],
 }
 
 // ─── MiBRX IO SLOT CARDS ─────────────────────────────────────────────────────
@@ -358,6 +358,14 @@ export const ACC = {
   expCable:  { code:'ACH-004-CE-RoHS',   mrp:579,   hsn:'85444299', desc:'Expansion Cable – RJ25 to RJ25 (6Pin)' },
   hmiCable:  { code:'ACH-002-CE-RoHS',   mrp:784,   hsn:'85444299', desc:'Download/Comm Cable – 9-Pin D-Type to RJ25 (6Pin)' },
   commCable: { code:'ACH-001-CE-RoHS',   mrp:861,   hsn:'85444299', desc:'Communication Cable – 9-Pin to 9-Pin D-Type' },
+}
+
+// ─── HMI ADAPTER PLATES (MiBRX Din Rail only) ────────────────────────────────
+// Size of the MiBRX base → adapter plate that mounts the HMI panel to it
+export const HMI_ADAPTER_PLATES = {
+  '2M': { code:'MIBRX-DSP-AP-2M', mrp:501,  hsn:'85389000', desc:'MiBRX 2M Adapter Plate for HMI Mounting' },
+  '4M': { code:'MIBRX-DSP-AP-4M', mrp:592,  hsn:'85389000', desc:'MiBRX 4M Adapter Plate for HMI Mounting' },
+  '6M': { code:'MIBRX-DSP-AP-6M', mrp:960,  hsn:'85389000', desc:'MiBRX 6M Adapter Plate for HMI Mounting' },
 }
 
 // ─── IO CARD COMPATIBILITY MATRIX ────────────────────────────────────────────
