@@ -314,7 +314,8 @@ function buildMiBRXWithHMI(baseCode, req, dspPref, hmiOption) {
   const base = BASES[baseCode]
   if (!base || base.mnt !== 'Din Rail') return null
 
-  const cfg = buildMiBRX(baseCode, req, dspPref, false)
+  // HMI is the display — build base with 'Blind' so no display module is added
+  const cfg = buildMiBRX(baseCode, req, 'Blind', false)
   if (!cfg) return null
 
   const plate = HMI_ADAPTER_PLATES[base.size]
@@ -323,7 +324,7 @@ function buildMiBRXWithHMI(baseCode, req, dspPref, hmiOption) {
   // Clone accItems and add HMI-specific accessories
   const accItems = [...cfg.accItems]
 
-  // 1. Adapter plate (replaces the standard display — goes in PLC section as it's a mounting accessory)
+  // 1. Adapter plate mounts the HMI to the base (goes in PLC section)
   const plcItems = [...cfg.plcItems,
     makeItem(plate.code, plate.desc, plate.hsn, plate.mrp, 1, 'PLC')
   ]
