@@ -15,7 +15,7 @@ const DEFAULT_IO = {
   aiV:0, aiI:0, aiTC:0, aiRTD:0, aiPTC:0, aiNTC:0, aiLC:0,
   aoV:0, aoI:0,
 }
-const DEFAULT_SP = { eth:false, wifi:false, dl:false, hmi:false }
+const DEFAULT_SP = { eth:false, wifi:false, dl:false, hmi:false, hmiOption:null }
 
 export default function App() {
   const [step,   setStep]   = useState(0)

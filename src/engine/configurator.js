@@ -839,9 +839,10 @@ export function generateBuckets(req) {
 
   }
 
-  // ── MiBRX + HMI — one candidate per HMI option ───────────────────────────
+  // ── MiBRX + HMI — one candidate per valid base, for the user-chosen HMI ────
   // HMI panels mount to MiBRX Din Rail bases via adapter plates (AP-2M/4M/6M)
-  if (req.hmi) {
+  if (req.hmi && req.hmiOption) {
+    const hmiOpt = req.hmiOption
     const hmiBaseCodes = Object.keys(BASES).filter(code => {
       const b = BASES[code]
       if (b.mnt !== 'Din Rail') return false
@@ -855,25 +856,23 @@ export function generateBuckets(req) {
 
     for (const baseCode of hmiBaseCodes) {
       const b = BASES[baseCode]
-      for (const hmiOpt of HMI_OPTIONS) {
-        const cfg = buildMiBRXWithHMI(baseCode, req, dspPref, hmiOpt)
-        if (!cfg) continue
-        candidates.push({
-          family: `MiBRX + HMI`,
-          code:   `${baseCode}-HMI-${hmiOpt.code}`,
-          baseCode,
-          mnt:    b.mnt,
-          ps:     b.ps,
-          ...cfg,
-          pills: [
-            { t: `${hmiOpt.size} HMI`, c: 'blue' },
-            { t: `${cfg.usedSlots}/${b.slots} Slots`, c: cfg.usedSlots > b.slots ? 'amber' : 'green' },
-            { t: b.ps, c: 'gray' },
-            { t: b.mnt, c: 'gray' },
-            ...(hmiOpt.eth ? [{ t: 'ETH on HMI', c: 'blue' }] : []),
-          ]
-        })
-      }
+      const cfg = buildMiBRXWithHMI(baseCode, req, dspPref, hmiOpt)
+      if (!cfg) continue
+      candidates.push({
+        family: `MiBRX + HMI`,
+        code:   `${baseCode}-HMI-${hmiOpt.code}`,
+        baseCode,
+        mnt:    b.mnt,
+        ps:     b.ps,
+        ...cfg,
+        pills: [
+          { t: `${hmiOpt.size} HMI`, c: 'blue' },
+          { t: `${cfg.usedSlots}/${b.slots} Slots`, c: cfg.usedSlots > b.slots ? 'amber' : 'green' },
+          { t: b.ps, c: 'gray' },
+          { t: b.mnt, c: 'gray' },
+          ...(hmiOpt.eth ? [{ t: 'ETH on HMI', c: 'blue' }] : []),
+        ]
+      })
     }
   }
 
@@ -891,15 +890,13 @@ export function generateBuckets(req) {
     return { allCandidates: [], warnings }
   }
 
-  // ── When HMI requested, only show MiBRX + HMI configs (drop plain MiBRX) ───
-  // Plain MiBRX configs would otherwise win on cost/complexity and bury HMI ones
+  // ── When a specific HMI is chosen, only rank HMI configs (drop plain MiBRX) ─
+  // Plain MiBRX would win on cost/complexity and bury the HMI configs
   let pool0 = candidates
-  if (req.hmi) {
+  if (req.hmi && req.hmiOption) {
     const hmiCandidates = candidates.filter(c => c.family === 'MiBRX + HMI')
     if (hmiCandidates.length > 0) {
-      // Keep HMI configs + Fixed PLCs (they may still be valid smaller options)
-      // Drop plain MiBRX and Flexys since they don't include HMI
-      pool0 = candidates.filter(c => c.family === 'MiBRX + HMI' || (c.family !== 'MiBRX' && c.family !== 'Flexys TX4' && c.family !== 'Flexys Rail' && c.family !== 'MiBRX Multi-Unit'))
+      pool0 = hmiCandidates
     }
   }
 
