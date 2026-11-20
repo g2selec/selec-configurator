@@ -891,11 +891,23 @@ export function generateBuckets(req) {
     return { allCandidates: [], warnings }
   }
 
+  // ── When HMI requested, only show MiBRX + HMI configs (drop plain MiBRX) ───
+  // Plain MiBRX configs would otherwise win on cost/complexity and bury HMI ones
+  let pool0 = candidates
+  if (req.hmi) {
+    const hmiCandidates = candidates.filter(c => c.family === 'MiBRX + HMI')
+    if (hmiCandidates.length > 0) {
+      // Keep HMI configs + Fixed PLCs (they may still be valid smaller options)
+      // Drop plain MiBRX and Flexys since they don't include HMI
+      pool0 = candidates.filter(c => c.family === 'MiBRX + HMI' || (c.family !== 'MiBRX' && c.family !== 'Flexys TX4' && c.family !== 'Flexys Rail' && c.family !== 'MiBRX Multi-Unit'))
+    }
+  }
+
   // ── Apply display preference filter ─────────────────────────────────────────
   // Filter candidates whose display type matches user preference
   const dspFiltered = dspPref === 'Any'
-    ? candidates
-    : candidates.filter(c => {
+    ? pool0
+    : pool0.filter(c => {
         // Fixed PLCs have no display — always include them
         if (c.cardCount === 0 && c.unitCount === 1 && !c.totalSlots) return true
         // Flexys Graphic has built-in 3.5" touch display
@@ -908,7 +920,7 @@ export function generateBuckets(req) {
         return opts.some(k => DISPLAYS[k]?.dspType === dspPref)
       })
 
-  const pool = dspFiltered.length > 0 ? dspFiltered : candidates
+  const pool = dspFiltered.length > 0 ? dspFiltered : pool0
 
   // ── Internal 4-quadrant ranking (background) ─────────────────────────────
   const sorted     = [...pool].sort((a, b) => a.total - b.total)
