@@ -4,10 +4,10 @@ const TOGGLES = [
   { key: 'eth',  label: 'Ethernet (Built-in)',    hint: 'Modbus TCP / EtherNet/IP — selects Ethernet-capable base automatically' },
   { key: 'wifi', label: 'WiFi Slot Card',         hint: 'MIBRX-SC-WIFI — occupies one IO card slot' },
   { key: 'dl',   label: 'Datalogging + RTC',      hint: 'MIBRX-SC-DL — 2MB logging; skipped if base already has RTC built-in' },
-  { key: 'hmi',  label: 'Add External HMI Panel', hint: 'Selec SP112/SP115 series — shown as add-on in results' },
+  { key: 'hmi',  label: 'Add External HMI Panel', hint: 'Selec SP112/SP115 series — MiBRX Din Rail only; each HMI size shown as a separate configuration' },
 ]
 
-const DSP_OPTIONS = ['Any', 'Blind', '7 Segment LED', 'LCD Text', '3.5 Inch HMI']
+const DSP_OPTIONS = ['Any', 'Blind', '7 Segment LED', 'LCD Text', '3.5" Touch']
 const PS_OPTIONS  = ['Any', '18 to 32 VDC', '90 to 270 VAC', '18 to 32 VAC']
 
 export default function SpecialStep({ sp, setSp, onBack, onGenerate }) {
